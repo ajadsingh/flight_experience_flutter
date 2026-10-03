@@ -1,0 +1,192 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/models/flight_state.dart';
+import '../../shared/widgets/stat_chip.dart';
+import 'flight_controller.dart';
+import 'widgets/flight_map.dart';
+import 'widgets/nearby_panel.dart';
+
+class FlightScreen extends ConsumerWidget {
+  const FlightScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(flightControllerProvider);
+    final controller = ref.read(flightControllerProvider.notifier);
+    final isSatellite = state.mapLayer == MapLayer.satellite;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('${state.route.originCode} → ${state.route.destinationCode}'),
+        actions: [
+          // Offline indicator badge
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: state.isMapOfflineReady
+                  ? Colors.green.shade100
+                  : Colors.orange.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  state.isMapOfflineReady
+                      ? Icons.offline_pin
+                      : Icons.cloud_download,
+                  size: 14,
+                  color: state.isMapOfflineReady
+                      ? Colors.green.shade800
+                      : Colors.orange.shade800,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  state.isMapOfflineReady
+                      ? 'Offline Ready'
+                      : '${(state.mapDownloadProgress * 100).round()}%',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: state.isMapOfflineReady
+                        ? Colors.green.shade900
+                        : Colors.orange.shade900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (state.mode == FlightMode.gps)
+            Padding(
+              padding: const EdgeInsets.only(right: 12, left: 4),
+              child: Icon(state.gpsAvailable ? Icons.gps_fixed : Icons.gps_off),
+            ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                StatChip(label: 'Altitude', value: '${state.altitudeFt.round()} ft'),
+                StatChip(label: 'Speed', value: '${state.speedKmh.round()} km/h'),
+                StatChip(label: 'Heading', value: '${state.heading.round()}°'),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Stack(
+              children: [
+                Positioned.fill(child: FlightMap(state: state)),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  right: 12,
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 11, 14, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.flight_takeoff, size: 20),
+                              const SizedBox(width: 7),
+                              Text(
+                                state.route.flightNumber,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w800),
+                              ),
+                              const Spacer(),
+                              Text('${(state.progress * 100).round()}%'),
+                            ],
+                          ),
+                          const SizedBox(height: 7),
+                          LinearProgressIndicator(value: state.progress),
+                          const SizedBox(height: 7),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  state.message,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ),
+                              Text(
+                                isSatellite ? '🛰️ Satellite' : '🗺️ Map',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 130,
+                  right: 12,
+                  child: Column(
+                    children: [
+                      FloatingActionButton.small(
+                        heroTag: 'layer',
+                        tooltip: isSatellite
+                            ? 'Switch to Street Map'
+                            : 'Switch to Satellite View',
+                        onPressed: state.satelliteAvailable
+                            ? controller.toggleMapLayer
+                            : null,
+                        child: Icon(
+                          isSatellite ? Icons.map_outlined : Icons.satellite_alt,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  bottom: 12,
+                  child: NearbyPanel(items: state.nearby),
+                ),
+              ],
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              child: FilledButton.icon(
+                onPressed: state.started
+                    ? controller.stop
+                    : () async {
+                        final ok = await controller.start();
+                        if (!ok && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Please enable device location permission and service.',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                icon: Icon(state.started ? Icons.pause : Icons.play_arrow),
+                label: Text(state.started ? 'Pause Tracking' : 'Start Tracking'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
