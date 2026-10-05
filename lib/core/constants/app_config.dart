@@ -21,6 +21,11 @@ class AppConfig {
   static const offlineMinZoom = 6;
   static const offlineMaxZoom = 10;
 
+  static const allowMockGps = String.fromEnvironment(
+    'ALLOW_MOCK_GPS',
+    defaultValue: 'false',
+  ) == 'true';
+
   static const tileRequestHeaders = <String, String>{
     'Accept': 'image/avif,image/webp,image/png,image/*,*/*;q=0.8',
   };
