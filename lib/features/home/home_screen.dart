@@ -360,7 +360,6 @@ class _OfflineMapStatusCard extends StatelessWidget {
                   color: Colors.green.shade800,
                 ),
               ),
-            if (isDone) ...[
               const SizedBox(height: 6),
               FutureBuilder<OfflinePackInfo>(
                 future: OfflinePackService.instance.info(state.route),
@@ -368,15 +367,16 @@ class _OfflineMapStatusCard extends StatelessWidget {
                   if (!snapshot.hasData) return const SizedBox.shrink();
                   final info = snapshot.data!;
                   return Text(
-                    'Map: ' + info.downloadedTiles.toString() +
-                        ' tiles · POIs: ' + info.poiCount.toString() +
+                    'Map: ' +
+                        info.downloadedTiles.toString() +
+                        ' tiles · POIs: ' +
+                        info.poiCount.toString() +
                         ' · Storage: ' +
                         OfflinePackService.formatBytes(info.storageBytes),
                     style: theme.textTheme.labelSmall,
                   );
                 },
               ),
-            ],
             ] else ...[
               if (state.cacheError != null)
                 Text(
