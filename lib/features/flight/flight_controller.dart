@@ -73,6 +73,7 @@ class FlightController extends Notifier<FlightState> {
         totalTiles: status.total,
         cacheFailedTiles: status.failed,
         cacheError: status.error,
+        clearCacheError: status.error == null,
       );
     });
 
@@ -86,6 +87,7 @@ class FlightController extends Notifier<FlightState> {
         totalTiles: currentStatus.total,
         cacheFailedTiles: currentStatus.failed,
         cacheError: currentStatus.error,
+        clearCacheError: currentStatus.error == null,
       );
       if (currentStatus.isDone) return;
     } else {
