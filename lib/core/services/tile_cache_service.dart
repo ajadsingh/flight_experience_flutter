@@ -17,6 +17,8 @@ class MapDownloadStatus {
     required this.isDownloading,
     required this.isDone,
     required this.progress,
+    this.failed = 0,
+    this.error,
   });
 
   final String routeId;
@@ -25,6 +27,8 @@ class MapDownloadStatus {
   final bool isDownloading;
   final bool isDone;
   final double progress;
+  final int failed;
+  final String? error;
 }
 
 class TileCacheService {
@@ -112,6 +116,7 @@ class TileCacheService {
     final client = http.Client();
     try {
       int downloaded = 0;
+      int failed = 0;
       _publish(
         MapDownloadStatus(
           routeId: route.id,
@@ -120,6 +125,7 @@ class TileCacheService {
           isDownloading: true,
           isDone: false,
           progress: 0,
+          failed: 0,
         ),
       );
 
@@ -149,6 +155,7 @@ class TileCacheService {
           isDownloading: pending.isNotEmpty,
           isDone: pending.isEmpty,
           progress: downloaded / total,
+          failed: failed,
         ),
       );
 
@@ -159,7 +166,11 @@ class TileCacheService {
           batch.map(
             (request) async {
               final ok = await _downloadTile(client, request);
-              if (ok) downloaded++;
+              if (ok) {
+                downloaded++;
+              } else {
+                failed++;
+              }
               _publish(
                 MapDownloadStatus(
                   routeId: route.id,
@@ -168,6 +179,7 @@ class TileCacheService {
                   isDownloading: downloaded < total,
                   isDone: downloaded >= total,
                   progress: (downloaded / total).clamp(0.0, 1.0),
+                  failed: failed,
                 ),
               );
             },
@@ -184,6 +196,8 @@ class TileCacheService {
           isDownloading: false,
           isDone: complete,
           progress: (downloaded / total).clamp(0.0, 1.0),
+          failed: failed,
+          error: complete ? null : '$failed tile(s) failed to download; retry while online.',
         ),
       );
     } finally {
