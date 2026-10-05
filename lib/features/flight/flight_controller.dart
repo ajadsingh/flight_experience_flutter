@@ -11,7 +11,6 @@ import '../../core/services/gps_service.dart';
 import '../../core/services/gps_position_filter.dart';
 import '../../core/services/flight_route_metrics.dart';
 import '../../core/services/nearby_poi_service.dart';
-import '../../core/services/poi_repository.dart';
 import '../../core/services/tile_cache_service.dart';
 import '../../core/services/offline_pack_service.dart';
 import 'flight_routes.dart';
@@ -149,6 +148,21 @@ class FlightController extends Notifier<FlightState> {
   Future<void> cacheCurrentRoute() async {
     await _autoCacheRoute(state.route);
     _poisLoaded = _loadPois(state.route);
+  }
+
+  Future<void> deleteCurrentOfflinePack() async {
+    await OfflinePackService.instance.delete(state.route);
+    state = state.copyWith(
+      offlineOnly: false,
+      isMapOfflineReady: false,
+      isMapDownloading: false,
+      mapDownloadProgress: 0,
+      downloadedTiles: 0,
+      totalTiles: 0,
+      cacheFailedTiles: 0,
+      clearCacheError: true,
+      message: 'Offline pack deleted.',
+    );
   }
 
   void toggleOfflineOnly() {
