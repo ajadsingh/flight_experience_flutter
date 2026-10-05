@@ -68,13 +68,20 @@ class FlightScreen extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            child: Column(
               children: [
-                StatChip(label: 'Altitude', value: '${state.altitudeFt.round()} ft'),
-                StatChip(label: 'Speed', value: '${state.speedKmh.round()} km/h'),
-                StatChip(label: 'Heading', value: '${state.heading.round()}°'),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    StatChip(label: 'Altitude', value: '${state.altitudeFt.round()} ft'),
+                    StatChip(label: 'Speed', value: '${state.speedKmh.round()} km/h'),
+                    StatChip(label: 'Heading', value: '${state.heading.round()}°'),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _ReliabilityRow(state: state),
               ],
             ),
           ),
@@ -186,6 +193,120 @@ class FlightScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ReliabilityRow extends StatelessWidget {
+  const _ReliabilityRow({required this.state});
+
+  final FlightState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final qualityText = switch (state.gpsQuality) {
+      GpsQuality.good => 'GPS good',
+      GpsQuality.fair => 'GPS fair',
+      GpsQuality.poor => 'GPS weak',
+      GpsQuality.rejected => 'GPS rejected',
+      GpsQuality.unknown => 'GPS waiting',
+    };
+    final qualityIcon = switch (state.gpsQuality) {
+      GpsQuality.good => Icons.gps_fixed,
+      GpsQuality.fair => Icons.gps_fixed,
+      GpsQuality.poor => Icons.gps_not_fixed,
+      GpsQuality.rejected => Icons.gps_off,
+      GpsQuality.unknown => Icons.gps_off,
+    };
+    final qualityColor = switch (state.gpsQuality) {
+      GpsQuality.good => Colors.green,
+      GpsQuality.fair => Colors.orange,
+      GpsQuality.poor => Colors.deepOrange,
+      GpsQuality.rejected => Colors.red,
+      GpsQuality.unknown => Theme.of(context).colorScheme.outline,
+    };
+
+    final routeValue = state.mode == FlightMode.gps
+        ? state.routeDeviationKm.toStringAsFixed(0) +
+            ' km · ' +
+            (state.routeConfidence * 100).round().toString() +
+            '%'
+        : 'Demo';
+
+    return Row(
+      children: [
+        Expanded(
+          child: _InfoPill(
+            icon: qualityIcon,
+            label: qualityText,
+            value: state.mode == FlightMode.gps && state.gpsAccuracyMeters > 0
+                ? '±' + state.gpsAccuracyMeters.round().toString() + ' m'
+                : '—',
+            color: qualityColor,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _InfoPill(
+            icon: state.routeDeviationKm <= 5
+                ? Icons.route
+                : Icons.warning_amber_rounded,
+            label: 'Route',
+            value: routeValue,
+            color: state.mode == FlightMode.gps && state.routeDeviationKm > 40
+                ? Colors.red
+                : Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        child: Row(
+          children: [
+            Icon(icon, size: 17, color: color),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }
