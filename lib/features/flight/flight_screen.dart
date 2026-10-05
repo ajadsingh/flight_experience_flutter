@@ -18,6 +18,7 @@ class FlightScreen extends ConsumerStatefulWidget {
 
 class _FlightScreenState extends ConsumerState<FlightScreen> {
   final _mapKey = GlobalKey<FlightMapState>();
+  bool _locationExplained = false;
 
   @override
   Widget build(BuildContext context) {
@@ -239,6 +240,17 @@ class _FlightScreenState extends ConsumerState<FlightScreen> {
                     onPressed: state.started
                         ? () => controller.finish()
                         : () async {
+                            if (state.mode == FlightMode.gps &&
+                                !_locationExplained) {
+                              final accepted = await showDialog<bool>(
+                                context: context,
+                                builder: (dialogContext) =>
+                                    const _LocationPurposeDialog(),
+                              );
+                              if (accepted != true || !mounted) return;
+                              _locationExplained = true;
+                            }
+
                             final ok = await controller.start();
                             if (!ok && context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -410,6 +422,33 @@ class _InsightCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+class _LocationPurposeDialog extends StatelessWidget {
+  const _LocationPurposeDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Use phone GPS?'),
+      content: const Text(
+        'Flight Experience uses the phone GPS to show your position, '
+        'track the journey and find offline places around you. '
+        'Your flight track is stored locally on this device.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Not now'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Continue'),
+        ),
+      ],
     );
   }
 }
