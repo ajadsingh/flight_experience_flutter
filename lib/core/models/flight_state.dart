@@ -20,6 +20,8 @@ class FlightState {
     required this.altitudeFt,
     required this.heading,
     required this.nearby,
+    required this.belowPoi,
+    required this.aheadPoi,
     required this.elapsed,
     required this.mapLayer,
     required this.message,
@@ -51,6 +53,8 @@ class FlightState {
         altitudeFt: 0,
         heading: 0,
         nearby: const [],
+        belowPoi: null,
+        aheadPoi: null,
         elapsed: Duration.zero,
         mapLayer: MapLayer.street,
         message: 'Ready to start',
@@ -81,6 +85,8 @@ class FlightState {
   final double altitudeFt;
   final double heading;
   final List<NearbyPoi> nearby;
+  final NearbyPoi? belowPoi;
+  final NearbyPoi? aheadPoi;
   final Duration elapsed;
   final MapLayer mapLayer;
   final String message;
@@ -114,6 +120,8 @@ class FlightState {
     double? altitudeFt,
     double? heading,
     List<NearbyPoi>? nearby,
+    NearbyPoi? belowPoi,
+    NearbyPoi? aheadPoi,
     Duration? elapsed,
     MapLayer? mapLayer,
     String? message,
@@ -145,6 +153,8 @@ class FlightState {
       altitudeFt: altitudeFt ?? this.altitudeFt,
       heading: heading ?? this.heading,
       nearby: nearby ?? this.nearby,
+      belowPoi: belowPoi ?? this.belowPoi,
+      aheadPoi: aheadPoi ?? this.aheadPoi,
       elapsed: elapsed ?? this.elapsed,
       mapLayer: mapLayer ?? this.mapLayer,
       message: message ?? this.message,
