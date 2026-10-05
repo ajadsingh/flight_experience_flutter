@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/flight_state.dart';
 import '../../core/models/poi.dart';
-import '../../core/models/gps_status.dart';
 import '../../shared/widgets/stat_chip.dart';
 import 'flight_controller.dart';
 import 'widgets/flight_map.dart';
@@ -162,19 +161,15 @@ class _FlightScreenState extends ConsumerState<FlightScreen> {
                       FloatingActionButton.small(
                         heroTag: 'recenter',
                         tooltip: 'Recenter on aircraft',
-                        onPressed: _mapKey.currentState?.recenter,
+                        onPressed: () => _mapKey.currentState?.recenter(),
                         child: const Icon(Icons.my_location),
                       ),
                       const SizedBox(height: 8),
                       FloatingActionButton.small(
                         heroTag: 'follow',
                         tooltip: 'Toggle follow aircraft',
-                        onPressed: _mapKey.currentState?.toggleFollowAircraft,
-                        child: Icon(
-                          _mapKey.currentState?.isFollowingAircraft == true
-                              ? Icons.gps_fixed
-                              : Icons.gps_off,
-                        ),
+                        onPressed: () => _mapKey.currentState?.toggleFollowAircraft(),
+                        child: const Icon(Icons.gps_fixed),
                       ),
                       const SizedBox(height: 8),
                       FloatingActionButton.small(
