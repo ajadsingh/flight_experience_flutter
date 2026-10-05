@@ -2,7 +2,9 @@ name: Flutter CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'phase-*'
   pull_request:
     branches: [main]
 
@@ -23,3 +25,5 @@ jobs:
         run: flutter analyze
       - name: Test
         run: flutter test
+      - name: Build Android App Bundle
+        run: flutter build appbundle --release

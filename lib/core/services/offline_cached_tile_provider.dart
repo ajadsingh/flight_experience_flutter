@@ -9,10 +9,12 @@ import 'tile_cache_service.dart';
 
 class OfflineCachedTileProvider extends TileProvider {
   OfflineCachedTileProvider({
+    required this.routeId,
     required this.layerName,
     required Map<String, String> headers,
   }) : super(headers: headers);
 
+  final String routeId;
   final String layerName;
 
   @override
@@ -22,6 +24,7 @@ class OfflineCachedTileProvider extends TileProvider {
   ) {
     final cacheFile = File(
       TileCacheService.instance.tilePath(
+        routeId,
         layerName,
         coordinates.z,
         coordinates.x,

@@ -5,6 +5,8 @@ import '../../core/models/flight_state.dart';
 import '../flight/flight_controller.dart';
 import '../flight/flight_routes.dart';
 import '../flight/flight_screen.dart';
+import '../history/flight_history_screen.dart';
+import '../offline/offline_map_manager_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -98,7 +100,7 @@ class HomeScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              'Auto-Cache Map',
+                              'Offline Pack',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: colorScheme.onPrimaryContainer,
                                 fontWeight: FontWeight.bold,
@@ -175,7 +177,7 @@ class HomeScreen extends ConsumerWidget {
                   await Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const FlightScreen()),
                   );
-                  controller.stop();
+                  await controller.finish();
                 },
                 icon: const Icon(Icons.play_arrow_rounded),
                 label: const Padding(
@@ -183,13 +185,41 @@ class HomeScreen extends ConsumerWidget {
                   child: Text('Start Flight Experience'),
                 ),
               ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const OfflineMapManagerScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.offline_bolt_outlined),
+                label: const Text('Manage Offline Maps'),
+              ),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const FlightHistoryScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.history),
+                label: const Text('My Flight History'),
+              ),
               const SizedBox(height: 8),
               Text(
                 state.isMapOfflineReady
                     ? '🟢 Offline Map Ready — ${state.downloadedTiles}/${state.totalTiles} route tiles cached.'
                     : state.isMapDownloading
                         ? '📥 Downloading route tiles for offline in-flight use...'
-                        : '📶 Connect to the internet before the flight to prepare the offline map.',
+                        : state.mapDownloadCancelled
+                            ? '⏸️ Download paused — tap Download to resume.'
+                            : state.failedTiles > 0
+                                ? '⚠️ ' + state.failedTiles.toString() + ' tiles failed — tap Download to retry.'
+                                : '📶 Connect to the internet before the flight to prepare the offline map.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: state.isMapOfflineReady

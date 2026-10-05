@@ -24,6 +24,7 @@ class PoiRepository {
                   (item['lon'] as num).toDouble(),
                 ),
                 description: item['description'] as String,
+                importance: (item['importance'] as num?)?.toInt() ?? 0,
               );
             } catch (e) {
               debugPrint('PoiRepository: skipping malformed entry $item — $e');

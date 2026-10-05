@@ -1,4 +1,4 @@
-package com.example.flight_experience
+package com.ajadverse.flightexperience
 
 import io.flutter.embedding.android.FlutterActivity
 
