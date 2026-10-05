@@ -80,7 +80,7 @@ class _FlightReplayScreenState extends State<FlightReplayScreen> {
 
   void _seek(double value) {
     if (_lastIndex < 0) return;
-    setState(() => _index = value.round().clamp(0, _lastIndex));
+    setState(() => _index = value.round().clamp(0, _lastIndex).toInt());
   }
 
   FlightState _state() {
@@ -324,7 +324,7 @@ class _ProfilePainter extends CustomPainter {
       if (value < minValue) minValue = value;
       if (value > maxValue) maxValue = value;
     }
-    final range = math.max(1, maxValue - minValue);
+    final range = math.max(1.0, maxValue - minValue).toDouble();
 
     final line = Paint()
       ..strokeWidth = 2
