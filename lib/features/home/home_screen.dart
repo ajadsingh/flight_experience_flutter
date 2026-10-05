@@ -18,7 +18,19 @@ class HomeScreen extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Flight Experience')),
+      appBar: AppBar(
+        title: const Text('Flight Experience'),
+        actions: [
+          IconButton(
+            tooltip: 'Offline storage',
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) => const _OfflineStorageDialog(),
+            ),
+            icon: const Icon(Icons.storage_outlined),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
@@ -529,6 +541,76 @@ class _RouteOption extends StatelessWidget {
   }
 }
 
+class _OfflineStorageDialog extends StatelessWidget {
+  const _OfflineStorageDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.storage_outlined),
+          SizedBox(width: 8),
+          Text('Offline Storage'),
+        ],
+      ),
+      content: SizedBox(
+        width: 420,
+        child: FutureBuilder<Map<String, int>>(
+          future: OfflinePackService.instance.storageByRoute(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            final entries = snapshot.data!.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value));
+            if (entries.isEmpty) {
+              return const Text('No offline packs stored on this device.');
+            }
+            final total = entries.fold<int>(
+              0,
+              (sum, entry) => sum + entry.value,
+            );
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Total: ' + OfflinePackService.formatBytes(total),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...entries.map(
+                  (entry) => ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.map_outlined),
+                    title: Text(entry.key),
+                    trailing: Text(
+                      OfflinePackService.formatBytes(entry.value),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
+    );
+  }
+}
 class _Feature extends StatelessWidget {
   const _Feature({required this.icon, required this.text});
   final IconData icon;
