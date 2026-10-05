@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/services/tile_cache_service.dart';
 import 'features/home/home_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await TileCacheService.instance.initialize();
   runApp(const ProviderScope(child: FlightExperienceApp()));
 }
 
