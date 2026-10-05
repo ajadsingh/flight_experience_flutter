@@ -1,4 +1,4 @@
-import 'models/geo_point.dart';
+import 'geo_point.dart';
 
 class FlightSample {
   const FlightSample({
