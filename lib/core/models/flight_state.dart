@@ -1,6 +1,7 @@
 import 'flight_route.dart';
 import 'geo_point.dart';
 import 'poi.dart';
+import '../services/gps_quality_service.dart';
 
 enum FlightMode { demo, gps }
 
@@ -18,16 +19,27 @@ class FlightState {
     required this.altitudeFt,
     required this.heading,
     required this.nearby,
+    required this.below,
+    required this.ahead,
     required this.elapsed,
     required this.mapLayer,
     required this.message,
     required this.gpsAvailable,
+    required this.gpsQuality,
+    required this.gpsAccuracyM,
+    required this.lastFixAt,
+    required this.isMockLocation,
+    required this.routeDeviationKm,
+    required this.routeConfidence,
     required this.satelliteAvailable,
     this.mapDownloadProgress = 0.0,
     this.isMapDownloading = false,
     this.isMapOfflineReady = false,
     this.downloadedTiles = 0,
     this.totalTiles = 0,
+    this.downloadedBytes = 0,
+    this.failedTiles = 0,
+    this.mapDownloadCancelled = false,
   });
 
   factory FlightState.initial(FlightRoute route) => FlightState(
@@ -41,16 +53,27 @@ class FlightState {
         altitudeFt: 0,
         heading: 0,
         nearby: const [],
+        below: null,
+        ahead: null,
         elapsed: Duration.zero,
         mapLayer: MapLayer.street,
         message: 'Ready to start',
         gpsAvailable: false,
+        gpsQuality: GpsQuality.noFix,
+        gpsAccuracyM: 0,
+        lastFixAt: null,
+        isMockLocation: false,
+        routeDeviationKm: 0,
+        routeConfidence: 0,
         satelliteAvailable: false,
         mapDownloadProgress: 0.0,
         isMapDownloading: false,
         isMapOfflineReady: false,
         downloadedTiles: 0,
         totalTiles: 0,
+        downloadedBytes: 0,
+        failedTiles: 0,
+        mapDownloadCancelled: false,
       );
 
   final FlightMode mode;
@@ -63,18 +86,28 @@ class FlightState {
   final double altitudeFt;
   final double heading;
   final List<NearbyPoi> nearby;
+  final NearbyPoi? below;
+  final NearbyPoi? ahead;
   final Duration elapsed;
   final MapLayer mapLayer;
   final String message;
   final bool gpsAvailable;
+  final GpsQuality gpsQuality;
+  final double gpsAccuracyM;
+  final DateTime? lastFixAt;
+  final bool isMockLocation;
+  final double routeDeviationKm;
+  final double routeConfidence;
   final bool satelliteAvailable;
 
-  // Offline map download state
   final double mapDownloadProgress;
   final bool isMapDownloading;
   final bool isMapOfflineReady;
   final int downloadedTiles;
   final int totalTiles;
+  final int downloadedBytes;
+  final int failedTiles;
+  final bool mapDownloadCancelled;
 
   FlightState copyWith({
     FlightMode? mode,
@@ -87,16 +120,27 @@ class FlightState {
     double? altitudeFt,
     double? heading,
     List<NearbyPoi>? nearby,
+    NearbyPoi? below,
+    NearbyPoi? ahead,
     Duration? elapsed,
     MapLayer? mapLayer,
     String? message,
     bool? gpsAvailable,
+    GpsQuality? gpsQuality,
+    double? gpsAccuracyM,
+    DateTime? lastFixAt,
+    bool? isMockLocation,
+    double? routeDeviationKm,
+    double? routeConfidence,
     bool? satelliteAvailable,
     double? mapDownloadProgress,
     bool? isMapDownloading,
     bool? isMapOfflineReady,
     int? downloadedTiles,
     int? totalTiles,
+    int? downloadedBytes,
+    int? failedTiles,
+    bool? mapDownloadCancelled,
   }) {
     return FlightState(
       mode: mode ?? this.mode,
@@ -109,16 +153,29 @@ class FlightState {
       altitudeFt: altitudeFt ?? this.altitudeFt,
       heading: heading ?? this.heading,
       nearby: nearby ?? this.nearby,
+      below: below ?? this.below,
+      ahead: ahead ?? this.ahead,
       elapsed: elapsed ?? this.elapsed,
       mapLayer: mapLayer ?? this.mapLayer,
       message: message ?? this.message,
       gpsAvailable: gpsAvailable ?? this.gpsAvailable,
+      gpsQuality: gpsQuality ?? this.gpsQuality,
+      gpsAccuracyM: gpsAccuracyM ?? this.gpsAccuracyM,
+      lastFixAt: lastFixAt ?? this.lastFixAt,
+      isMockLocation: isMockLocation ?? this.isMockLocation,
+      routeDeviationKm: routeDeviationKm ?? this.routeDeviationKm,
+      routeConfidence: routeConfidence ?? this.routeConfidence,
       satelliteAvailable: satelliteAvailable ?? this.satelliteAvailable,
-      mapDownloadProgress: mapDownloadProgress ?? this.mapDownloadProgress,
+      mapDownloadProgress:
+          mapDownloadProgress ?? this.mapDownloadProgress,
       isMapDownloading: isMapDownloading ?? this.isMapDownloading,
       isMapOfflineReady: isMapOfflineReady ?? this.isMapOfflineReady,
       downloadedTiles: downloadedTiles ?? this.downloadedTiles,
       totalTiles: totalTiles ?? this.totalTiles,
+      downloadedBytes: downloadedBytes ?? this.downloadedBytes,
+      failedTiles: failedTiles ?? this.failedTiles,
+      mapDownloadCancelled:
+          mapDownloadCancelled ?? this.mapDownloadCancelled,
     );
   }
 }
