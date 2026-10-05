@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/flight_state.dart';
 import '../../shared/widgets/stat_chip.dart';
@@ -6,11 +7,19 @@ import 'flight_controller.dart';
 import 'widgets/flight_map.dart';
 import 'widgets/nearby_panel.dart';
 
-class FlightScreen extends ConsumerWidget {
+class FlightScreen extends ConsumerStatefulWidget {
   const FlightScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FlightScreen> createState() => _FlightScreenState();
+}
+
+class _FlightScreenState extends ConsumerState<FlightScreen> {
+  final MapController _mapController = MapController();
+  bool _followAircraft = true;
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(flightControllerProvider);
     final controller = ref.read(flightControllerProvider.notifier);
     final isSatellite = state.mapLayer == MapLayer.satellite;
@@ -88,7 +97,18 @@ class FlightScreen extends ConsumerWidget {
           Expanded(
             child: Stack(
               children: [
-                Positioned.fill(child: FlightMap(state: state)),
+                Positioned.fill(
+                  child: FlightMap(
+                    state: state,
+                    mapController: _mapController,
+                    followAircraft: _followAircraft,
+                    onUserGesture: () {
+                      if (_followAircraft && mounted) {
+                        setState(() => _followAircraft = false);
+                      }
+                    },
+                  ),
+                ),
                 Positioned(
                   top: 12,
                   left: 12,
@@ -140,10 +160,39 @@ class FlightScreen extends ConsumerWidget {
                   ),
                 ),
                 Positioned(
-                  top: 130,
+                  top: 122,
                   right: 12,
                   child: Column(
                     children: [
+                      FloatingActionButton.small(
+                        heroTag: 'follow',
+                        tooltip: _followAircraft
+                            ? 'Following aircraft'
+                            : 'Follow aircraft',
+                        onPressed: state.currentPosition == null
+                            ? null
+                            : () {
+                                setState(() => _followAircraft = true);
+                                final point = state.currentPosition!.toLatLng();
+                                _mapController.move(point, _zoomForAltitude(state.altitudeFt));
+                              },
+                        child: Icon(
+                          _followAircraft
+                              ? Icons.navigation
+                              : Icons.my_location,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      FloatingActionButton.small(
+                        heroTag: 'recenter',
+                        tooltip: 'Recenter on aircraft',
+                        onPressed: () {
+                          final point = (state.currentPosition ?? state.route.start).toLatLng();
+                          _mapController.move(point, _zoomForAltitude(state.altitudeFt));
+                        },
+                        child: const Icon(Icons.center_focus_strong),
+                      ),
+                      const SizedBox(height: 8),
                       FloatingActionButton.small(
                         heroTag: 'layer',
                         tooltip: isSatellite
@@ -163,7 +212,11 @@ class FlightScreen extends ConsumerWidget {
                   left: 12,
                   right: 12,
                   bottom: 12,
-                  child: NearbyPanel(items: state.nearby),
+                  child: NearbyPanel(
+                    items: state.nearby,
+                    below: state.belowPoi,
+                    ahead: state.aheadPoi,
+                  ),
                 ),
               ],
             ),
@@ -309,5 +362,12 @@ class _InfoPill extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+  double _zoomForAltitude(double altitudeFt) {
+    const minZoom = 5.5;
+    const maxZoom = 10.0;
+    final fraction = (altitudeFt / 40000).clamp(0.0, 1.0);
+    return maxZoom - fraction * (maxZoom - minZoom);
   }
 }
