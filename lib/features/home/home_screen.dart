@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/flight_route.dart';
 import '../../core/models/flight_state.dart';
+import '../../core/services/offline_pack_service.dart';
 import '../flight/flight_controller.dart';
 import '../flight/flight_routes.dart';
 import '../flight/flight_screen.dart';
@@ -166,6 +167,7 @@ class HomeScreen extends ConsumerWidget {
               _OfflineMapStatusCard(
                 state: state,
                 onRetry: controller.cacheCurrentRoute,
+                onDelete: controller.deleteCurrentOfflinePack,
               ),
               const SizedBox(height: 16),
 
@@ -244,10 +246,12 @@ class _OfflineMapStatusCard extends StatelessWidget {
   const _OfflineMapStatusCard({
     required this.state,
     required this.onRetry,
+    required this.onDelete,
   });
 
   final FlightState state;
   final VoidCallback onRetry;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -293,11 +297,23 @@ class _OfflineMapStatusCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (!isDownloading && !isDone)
-                  TextButton.icon(
-                    onPressed: onRetry,
-                    icon: const Icon(Icons.refresh, size: 16),
-                    label: const Text('Download'),
+                if (!isDownloading)
+                  Wrap(
+                    spacing: 2,
+                    children: [
+                      if (!isDone)
+                        TextButton.icon(
+                          onPressed: onRetry,
+                          icon: const Icon(Icons.download, size: 16),
+                          label: const Text('Download'),
+                        ),
+                      if (isDone)
+                        IconButton(
+                          tooltip: 'Delete offline pack',
+                          onPressed: onDelete,
+                          icon: const Icon(Icons.delete_outline),
+                        ),
+                    ],
                   ),
               ],
             ),
@@ -332,6 +348,23 @@ class _OfflineMapStatusCard extends StatelessWidget {
                   color: Colors.green.shade800,
                 ),
               ),
+            if (isDone) ...[
+              const SizedBox(height: 6),
+              FutureBuilder<OfflinePackInfo>(
+                future: OfflinePackService.instance.info(state.route),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return const SizedBox.shrink();
+                  final info = snapshot.data!;
+                  return Text(
+                    'Map: ' + info.downloadedTiles.toString() +
+                        ' tiles · POIs: ' + info.poiCount.toString() +
+                        ' · Storage: ' +
+                        OfflinePackService.formatBytes(info.storageBytes),
+                    style: theme.textTheme.labelSmall,
+                  );
+                },
+              ),
+            ],
             ] else ...[
               if (state.cacheError != null)
                 Text(
