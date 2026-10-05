@@ -1,4 +1,5 @@
 import 'flight_route.dart';
+import 'flight_sample.dart';
 import 'geo_point.dart';
 
 class FlightRecord {
@@ -17,6 +18,7 @@ class FlightRecord {
     required this.maxAltitudeFt,
     required this.waypoints,
     required this.track,
+    this.samples = const [],
   });
 
   final String id;
@@ -33,6 +35,7 @@ class FlightRecord {
   final double maxAltitudeFt;
   final List<GeoPoint> waypoints;
   final List<GeoPoint> track;
+  final List<FlightSample> samples;
 
   FlightRoute toRoute() => FlightRoute(
         id: routeId,
@@ -63,6 +66,7 @@ class FlightRecord {
         'track': track
             .map((point) => {'lat': point.latitude, 'lon': point.longitude})
             .toList(),
+        'samples': samples.map((sample) => sample.toJson()).toList(),
       };
 
   factory FlightRecord.fromJson(Map<String, dynamic> json) {
@@ -74,8 +78,14 @@ class FlightRecord {
       );
     }
 
+    FlightSample parseSample(dynamic value) {
+      final map = Map<String, dynamic>.from(value as Map);
+      return FlightSample.fromJson(map);
+    }
+
     final waypointValues = (json['waypoints'] as List? ?? const []);
     final trackValues = (json['track'] as List? ?? const []);
+    final sampleValues = (json['samples'] as List? ?? const []);
 
     return FlightRecord(
       id: json['id'] as String,
@@ -86,12 +96,17 @@ class FlightRecord {
       destination: json['destination'] as String,
       destinationCode: json['destinationCode'] as String,
       startedAt: DateTime.parse(json['startedAt'] as String),
-      duration: Duration(seconds: (json['durationSeconds'] as num).round()),
+      duration: Duration(
+        seconds: (json['durationSeconds'] as num).round(),
+      ),
       distanceKm: (json['distanceKm'] as num).toDouble(),
       maxSpeedKmh: (json['maxSpeedKmh'] as num).toDouble(),
       maxAltitudeFt: (json['maxAltitudeFt'] as num).toDouble(),
       waypoints: waypointValues.map(parsePoint).toList(growable: false),
       track: trackValues.map(parsePoint).toList(growable: false),
+      samples: sampleValues
+          .map(parseSample)
+          .toList(growable: false),
     );
   }
 
@@ -102,6 +117,7 @@ class FlightRecord {
     required List<GeoPoint> track,
     required double maxSpeedKmh,
     required double maxAltitudeFt,
+    List<FlightSample> samples = const [],
   }) {
     var distance = 0.0;
     for (var i = 1; i < track.length; i++) {
@@ -109,7 +125,7 @@ class FlightRecord {
     }
 
     return FlightRecord(
-      id: '\${route.id}-\${startedAt.microsecondsSinceEpoch}',
+      id: route.id + '-' + startedAt.microsecondsSinceEpoch.toString(),
       routeId: route.id,
       flightNumber: route.flightNumber,
       origin: route.origin,
@@ -123,6 +139,7 @@ class FlightRecord {
       maxAltitudeFt: maxAltitudeFt,
       waypoints: route.waypoints,
       track: List.unmodifiable(track),
+      samples: List.unmodifiable(samples),
     );
   }
 }
