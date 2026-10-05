@@ -6,6 +6,7 @@ import '../../core/constants/app_config.dart';
 import '../../core/models/flight_route.dart';
 import '../../core/models/flight_state.dart';
 import '../../core/models/geo_point.dart';
+import '../../core/models/flight_history_item.dart';
 import '../../core/services/demo_flight_service.dart';
 import '../../core/services/gps_service.dart';
 import '../../core/services/gps_position_filter.dart';
@@ -13,6 +14,7 @@ import '../../core/services/flight_route_metrics.dart';
 import '../../core/services/nearby_poi_service.dart';
 import '../../core/services/tile_cache_service.dart';
 import '../../core/services/offline_pack_service.dart';
+import '../../core/services/flight_history_service.dart';
 import 'flight_routes.dart';
 
 final flightControllerProvider =
@@ -37,6 +39,9 @@ class FlightController extends Notifier<FlightState> {
   // Reuse mutable buffer to avoid O(n) full list copy every tick
   final List<GeoPoint> _trackBuffer = [];
   static const _maxTrackPoints = 400;
+  DateTime? _flightStartedAt;
+  double _maxSpeedKmh = 0;
+  double _maxAltitudeFt = 0;
 
   @override
   FlightState build() {
@@ -107,6 +112,9 @@ class FlightController extends Notifier<FlightState> {
     _stopTracking();
     _trackBuffer.clear();
     _gpsFilter.reset();
+    _flightStartedAt = null;
+    _maxSpeedKmh = 0;
+    _maxAltitudeFt = 0;
     _lastAcceptedGpsTimestamp = null;
     state = FlightState.initial(state.route).copyWith(
       mode: mode,
@@ -221,6 +229,9 @@ class FlightController extends Notifier<FlightState> {
     });
 
     _gpsSubscription = _gps.watch().listen(_handleGpsPosition);
+    _flightStartedAt = DateTime.now();
+    _maxSpeedKmh = 0;
+    _maxAltitudeFt = 0;
     state = state.copyWith(started: true, gpsAvailable: true, message: 'GPS tracking live');
     return true;
   }
@@ -235,6 +246,9 @@ class FlightController extends Notifier<FlightState> {
       elapsed: Duration.zero,
       message: 'Demo flight running',
     );
+    _flightStartedAt = DateTime.now();
+    _maxSpeedKmh = 0;
+    _maxAltitudeFt = 0;
     _demo.start(state.route, (tick) {
       _update(
         position: tick.position,
@@ -246,6 +260,7 @@ class FlightController extends Notifier<FlightState> {
       );
       if (tick.progress >= 1) {
         state = state.copyWith(started: false, message: 'Demo flight completed');
+        unawaited(_persistCurrentFlight(finalMessage: 'Demo flight saved to history'));
       }
     });
   }
@@ -384,6 +399,10 @@ class FlightController extends Notifier<FlightState> {
     DateTime? lastGpsTimestamp,
     bool? mockLocationRejected,
   }) {
+    _maxSpeedKmh = speedKmh > _maxSpeedKmh ? speedKmh : _maxSpeedKmh;
+    _maxAltitudeFt =
+        altitudeFt > _maxAltitudeFt ? altitudeFt : _maxAltitudeFt;
+
     _trackBuffer.add(position);
     if (_trackBuffer.length > _maxTrackPoints) {
       _trackBuffer.removeAt(0);
@@ -424,8 +443,44 @@ class FlightController extends Notifier<FlightState> {
   }
 
   void stop() {
+    final wasStarted = state.started;
     _stopTracking();
-    state = state.copyWith(started: false, message: 'Tracking paused');
+    state = state.copyWith(
+      started: false,
+      message: wasStarted ? 'Flight saved to history' : 'Tracking paused',
+    );
+    if (wasStarted) {
+      unawaited(
+        _persistCurrentFlight(finalMessage: 'Flight saved to history'),
+      );
+    }
+  }
+
+  Future<void> _persistCurrentFlight({required String finalMessage}) async {
+    final startedAt = _flightStartedAt;
+    _flightStartedAt = null;
+    if (startedAt == null || _trackBuffer.length < 2) return;
+
+    final track = List<GeoPoint>.unmodifiable(_trackBuffer);
+    final item = FlightHistoryItem(
+      id: startedAt.microsecondsSinceEpoch.toString(),
+      startedAt: startedAt,
+      route: state.route,
+      duration: state.elapsed,
+      distanceKm: FlightHistoryItem.calculateDistanceKm(track),
+      maxSpeedKmh: _maxSpeedKmh,
+      maxAltitudeFt: _maxAltitudeFt,
+      track: track,
+      mode: state.mode == FlightMode.demo ? 'demo' : 'gps',
+    );
+
+    try {
+      await FlightHistoryService.instance.save(item);
+      state = state.copyWith(message: finalMessage);
+    } catch (e) {
+      debugPrint('FlightController: history save failed — $e');
+      state = state.copyWith(message: 'Flight ended — history could not be saved.');
+    }
   }
 
   void _stopTracking() {
