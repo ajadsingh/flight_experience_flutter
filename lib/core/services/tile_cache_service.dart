@@ -63,7 +63,7 @@ class TileCacheService {
 
     final root = await getApplicationSupportDirectory();
     final directory = Directory(
-      '\${root.path}\${Platform.pathSeparator}flight_experience_tiles',
+      '${root.path}${Platform.pathSeparator}flight_experience_tiles',
     );
 
     await directory.create(recursive: true);
@@ -183,7 +183,7 @@ class TileCacheService {
     }
 
     final directory = Directory(
-      '\${_rootDirectory!.path}\${Platform.pathSeparator}$routeId',
+      '${_rootDirectory!.path}${Platform.pathSeparator}$routeId',
     );
 
     if (await directory.exists()) {
@@ -382,7 +382,7 @@ class TileCacheService {
       if (bytes.isEmpty) return const _DownloadResult.failure();
 
       await request.target.parent.create(recursive: true);
-      final temp = File('\${request.target.path}.part');
+      final temp = File('${request.target.path}.part');
 
       await temp.writeAsBytes(bytes, flush: true);
 
@@ -511,11 +511,11 @@ class TileCacheService {
     }
 
     return File(
-      '\${root.path}\${Platform.pathSeparator}$routeId'
-      '\${Platform.pathSeparator}$layer'
-      '\${Platform.pathSeparator}$z'
-      '\${Platform.pathSeparator}$x'
-      '\${Platform.pathSeparator}$y.png',
+      '${root.path}${Platform.pathSeparator}$routeId'
+      '${Platform.pathSeparator}$layer'
+      '${Platform.pathSeparator}$z'
+      '${Platform.pathSeparator}$x'
+      '${Platform.pathSeparator}$y.png',
     );
   }
 
@@ -528,8 +528,8 @@ class TileCacheService {
     }
 
     return File(
-      '\${root.path}\${Platform.pathSeparator}$routeId'
-      '\${Platform.pathSeparator}manifest.json',
+      '${root.path}${Platform.pathSeparator}$routeId'
+      '${Platform.pathSeparator}manifest.json',
     );
   }
 
