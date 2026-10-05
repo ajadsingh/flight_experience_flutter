@@ -99,6 +99,21 @@ class TileCacheService {
     ];
 
     final total = tiles.length * sources.length;
+    if (total > AppConfig.maxOfflineTiles) {
+      _publish(
+        MapDownloadStatus(
+          routeId: route.id,
+          downloaded: 0,
+          total: total,
+          isDownloading: false,
+          isDone: false,
+          progress: 0,
+          error: 'Offline map is too large for the learning cache limit.',
+        ),
+      );
+      return;
+    }
+
     if (total == 0) {
       _publish(
         MapDownloadStatus(
