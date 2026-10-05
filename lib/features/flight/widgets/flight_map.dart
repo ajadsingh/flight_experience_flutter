@@ -7,15 +7,24 @@ import '../../../core/models/flight_state.dart';
 import '../../../core/services/offline_cached_tile_provider.dart';
 
 class FlightMap extends StatefulWidget {
-  const FlightMap({super.key, required this.state});
+  const FlightMap({
+    super.key,
+    required this.state,
+    required this.mapController,
+    required this.followAircraft,
+    this.onUserGesture,
+  });
+
   final FlightState state;
+  final MapController mapController;
+  final bool followAircraft;
+  final VoidCallback? onUserGesture;
 
   @override
   State<FlightMap> createState() => _FlightMapState();
 }
 
 class _FlightMapState extends State<FlightMap> {
-  final MapController _mapController = MapController();
   LatLng? _lastCenter;
   late final OfflineCachedTileProvider _streetTileProvider;
   late final OfflineCachedTileProvider _satelliteTileProvider;
@@ -44,7 +53,7 @@ class _FlightMapState extends State<FlightMap> {
   void didUpdateWidget(covariant FlightMap oldWidget) {
     super.didUpdateWidget(oldWidget);
     final current = widget.state.currentPosition?.toLatLng();
-    if (current == null) return;
+    if (current == null || !widget.followAircraft) return;
 
     final moved = _lastCenter == null ||
         _haversineKm(_lastCenter!, current) > 5.0; // threshold in km
@@ -52,7 +61,7 @@ class _FlightMapState extends State<FlightMap> {
       _lastCenter = current;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _mapController.move(current, _zoomForAltitude(widget.state.altitudeFt));
+          widget.mapController.move(current, _zoomForAltitude(widget.state.altitudeFt));
         }
       });
     }
@@ -102,12 +111,15 @@ class _FlightMapState extends State<FlightMap> {
     return Stack(
       children: [
         FlutterMap(
-          mapController: _mapController,
+          mapController: widget.mapController,
           options: MapOptions(
             initialCenter: current,
             initialZoom: 6.2,
             minZoom: 3,
             maxZoom: 13,
+            onPositionChanged: (_, hasGesture) {
+              if (hasGesture) widget.onUserGesture?.call();
+            },
           ),
           children: [
             TileLayer(
