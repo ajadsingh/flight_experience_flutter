@@ -1,14 +1,27 @@
 class AppConfig {
   static const appName = 'Flight Experience';
-  static const defaultTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+  static const defaultTileUrl =
+      'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
   static const userAgent = 'FlightExperience/0.1';
 
-  // Default to free high-res Esri World Imagery for realistic satellite simulation
-  static const defaultSatelliteTileUrl =
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-
+  // Satellite imagery is opt-in. Provide a licensed provider URL at build time.
   static const satelliteTileUrl = String.fromEnvironment(
     'SATELLITE_TILE_URL',
-    defaultValue: defaultSatelliteTileUrl,
+    defaultValue: '',
   );
+
+  // Required by the selected satellite provider. Keep empty until configured.
+  static const satelliteAttribution = String.fromEnvironment(
+    'SATELLITE_ATTRIBUTION',
+    defaultValue: '',
+  );
+
+  static const offlineMinZoom = 6;
+  static const offlineMaxZoom = 10;
+
+  static const tileRequestHeaders = <String, String>{
+    'Accept': 'image/avif,image/webp,image/png,image/*,*/*;q=0.8',
+  };
 }
