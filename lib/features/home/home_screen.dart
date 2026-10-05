@@ -100,7 +100,7 @@ class HomeScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              'Auto-Cache Map',
+                              'Offline Pack',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: colorScheme.onPrimaryContainer,
                                 fontWeight: FontWeight.bold,
@@ -215,7 +215,11 @@ class HomeScreen extends ConsumerWidget {
                     ? '🟢 Offline Map Ready — ${state.downloadedTiles}/${state.totalTiles} route tiles cached.'
                     : state.isMapDownloading
                         ? '📥 Downloading route tiles for offline in-flight use...'
-                        : '📶 Connect to the internet before the flight to prepare the offline map.',
+                        : state.mapDownloadCancelled
+                            ? '⏸️ Download paused — tap Download to resume.'
+                            : state.failedTiles > 0
+                                ? '⚠️ ' + state.failedTiles.toString() + ' tiles failed — tap Download to retry.'
+                                : '📶 Connect to the internet before the flight to prepare the offline map.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: state.isMapOfflineReady
