@@ -1,33 +1,57 @@
-# Production checklist
+# Phase 1–4 implementation checklist
 
-## Maps and offline
-- Choose a commercial/appropriate map tile provider.
-- Keep OSM attribution where required.
-- Create real offline packs using a licensed MBTiles/PMTiles dataset.
-- Add richer POIs for the countries/routes you support.
-- Define a maximum offline pack size and device storage check.
+## Phase 1 — Reliability
+- [x] GPS permission/service readiness handling
+- [x] GPS accuracy quality classification
+- [x] Stale GPS fix detection
+- [x] Mock-location detection
+- [x] GPS smoothing
+- [x] Implausible GPS jump rejection
+- [x] Route deviation and confidence metrics
+- [x] Reduced GPS sensor churn for longer sessions
+- [x] Automated analyze/test CI
 
-## GPS
-- Add a smoothing/filtering layer for noisy cabin GPS.
-- Display a data-quality indicator based on position accuracy.
-- Handle `Position.timestamp`, mock locations and stale fixes.
-- Do not market phone GPS as aircraft navigation.
+## Phase 2 — Passenger intelligence
+- [x] Airport-pair route catalog
+- [x] Indexed offline POI search
+- [x] “Below” nearest-place insight
+- [x] “Ahead” bearing-aware insight
+- [x] Nearby POI cards
+- [x] Importance ranking for major landmarks
 
-## Privacy
-- Ask only for foreground location.
-- Explain why location is used.
-- Keep flight history local by default.
-- Provide a delete-history action.
+## Phase 3 — Offline experience
+- [x] Persistent route-scoped tile cache
+- [x] Offline-first tile provider
+- [x] Corridor tile generation
+- [x] Download progress
+- [x] Download-size estimate
+- [x] Resume by reusing existing tiles
+- [x] Cancel/pause workflow
+- [x] Retry through subsequent downloads
+- [x] Delete route cache
+- [x] Persisted cache manifest
+- [x] Offline map manager UI
 
-## Experience
-- Add airport pair selection.
-- Add route corridor generation.
-- Add “What's below me?” and “What's ahead?” with bearing-aware selection.
-- Add optional 3D terrain as a separate renderer.
-- Add accessibility labels and haptics.
+### Learning-mode limitation
+The current implementation intentionally uses raster OSM tiles for learning/demo use. Before commercial distribution, replace bulk tile caching with a map/data source whose terms explicitly support the intended offline and commercial use.
 
-## Release
-- Test on Android physical devices in airplane mode with GPS enabled.
-- Test weak GPS/no-fix behavior.
-- Test long sessions for battery and memory.
-- Replace demo route and sample POIs before production.
+## Phase 4 — Premium experience
+- [x] Local flight history
+- [x] Delete all local history
+- [x] Flight replay
+- [x] Recorded per-point telemetry
+- [x] Altitude replay profile
+- [x] Recenter aircraft
+- [x] Follow-aircraft control
+- [x] Better GPS/offline status badges
+- [x] Location-purpose explanation before permission request
+- [x] Production Android application ID
+
+## Still required for a commercial release
+- [ ] Production map/offline data licensing
+- [ ] Production release signing/keystore
+- [ ] Privacy policy and Play Store Data Safety declarations
+- [ ] Physical-device testing across Android versions
+- [ ] Long-flight battery/memory profiling
+- [ ] Nationwide POI/data quality validation
+- [ ] Crash/telemetry strategy
