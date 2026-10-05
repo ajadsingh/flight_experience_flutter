@@ -19,7 +19,7 @@ class GpsService {
   Stream<Position> watch() {
     const settings = LocationSettings(
       accuracy: LocationAccuracy.best,
-      distanceFilter: 20,
+      distanceFilter: 50,
     );
     return Geolocator.getPositionStream(locationSettings: settings);
   }
