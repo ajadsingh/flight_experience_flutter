@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../core/constants/app_config.dart';
 import '../../core/models/flight_record.dart';
+import '../../core/models/flight_sample.dart';
 import '../../core/models/flight_route.dart';
 import '../../core/models/flight_state.dart';
 import '../../core/models/geo_point.dart';
@@ -41,6 +42,7 @@ class FlightController extends Notifier<FlightState> {
   NearbyPoiService _nearbyService = NearbyPoiService(const []);
 
   final List<GeoPoint> _trackBuffer = [];
+  final List<FlightSample> _samples = [];
   static const _maxTrackPoints = 600;
 
   DateTime? _sessionStartedAt;
@@ -295,6 +297,8 @@ class FlightController extends Notifier<FlightState> {
         ahead: ahead,
         clearBelow: below == null,
         clearAhead: ahead == null,
+        sampleAt: _sessionStartedAt?.add(tick.elapsed),
+        accuracyM: 0,
       );
 
       if (tick.progress >= 1) {
@@ -401,6 +405,8 @@ class FlightController extends Notifier<FlightState> {
       ahead: ahead,
       clearBelow: below == null,
       clearAhead: ahead == null,
+      sampleAt: timestamp,
+      accuracyM: status.accuracyM,
       message: status.isMocked
           ? 'GPS tracking live — mock location detected'
           : 'GPS tracking live',
@@ -420,11 +426,29 @@ class FlightController extends Notifier<FlightState> {
     NearbyPoi? ahead,
     bool clearBelow = false,
     bool clearAhead = false,
+    DateTime? sampleAt,
+    double accuracyM = 0,
     String? message,
   }) {
     _trackBuffer.add(position);
     if (_trackBuffer.length > _maxTrackPoints) {
       _trackBuffer.removeAt(0);
+    }
+
+    if (sampleAt != null) {
+      _samples.add(
+        FlightSample(
+          position: position,
+          timestamp: sampleAt,
+          speedKmh: speedKmh,
+          altitudeFt: altitudeFt,
+          heading: heading,
+          accuracyM: accuracyM,
+        ),
+      );
+      if (_samples.length > _maxTrackPoints) {
+        _samples.removeAt(0);
+      }
     }
 
     _maxSpeedKmh = speedKmh > _maxSpeedKmh ? speedKmh : _maxSpeedKmh;
@@ -461,6 +485,7 @@ class FlightController extends Notifier<FlightState> {
     _maxSpeedKmh = 0;
     _maxAltitudeFt = 0;
     _trackBuffer.clear();
+    _samples.clear();
     _smoother.reset();
     _finalizing = false;
   }
@@ -471,6 +496,7 @@ class FlightController extends Notifier<FlightState> {
     _lastAcceptedPosition = null;
     _maxSpeedKmh = 0;
     _maxAltitudeFt = 0;
+    _samples.clear();
     _finalizing = false;
     _smoother.reset();
   }
@@ -491,6 +517,7 @@ class FlightController extends Notifier<FlightState> {
           track: _trackBuffer,
           maxSpeedKmh: _maxSpeedKmh,
           maxAltitudeFt: _maxAltitudeFt,
+          samples: _samples,
         );
         await _history.save(record);
       }
