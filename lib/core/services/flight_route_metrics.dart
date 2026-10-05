@@ -77,7 +77,7 @@ class FlightRouteMetrics {
 
     final nearestX = x1 + dx * clampedT;
     final nearestY = y1 + dy * clampedT;
-    final deviation = math.hypot(xp - nearestX, yp - nearestY);
+    final deviation = math.sqrt(math.pow(xp - nearestX, 2) + math.pow(yp - nearestY, 2));
 
     return _Projection(
       t: clampedT,
