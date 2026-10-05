@@ -335,25 +335,28 @@ class _FlightInsights extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final belowItem = below;
+    final aheadItem = ahead;
+
     return Row(
       children: [
-        if (below != null)
+        if (belowItem != null)
           Expanded(
             child: _InsightCard(
               icon: Icons.vertical_align_bottom,
               title: 'Below',
-              name: below.poi.name,
-              detail: below.distanceKm.toStringAsFixed(0) + ' km',
+              name: belowItem.poi.name,
+              detail: belowItem.distanceKm.toStringAsFixed(0) + ' km',
             ),
           ),
-        if (below != null && ahead != null) const SizedBox(width: 8),
-        if (ahead != null)
+        if (belowItem != null && aheadItem != null) const SizedBox(width: 8),
+        if (aheadItem != null)
           Expanded(
             child: _InsightCard(
               icon: Icons.trending_flat,
               title: 'Ahead',
-              name: ahead.poi.name,
-              detail: ahead.distanceKm.toStringAsFixed(0) + ' km',
+              name: aheadItem.poi.name,
+              detail: aheadItem.distanceKm.toStringAsFixed(0) + ' km',
             ),
           ),
       ],
