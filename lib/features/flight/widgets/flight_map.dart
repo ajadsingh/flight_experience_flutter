@@ -213,8 +213,10 @@ class _FlightMapState extends State<FlightMap> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Text(
                 isSatellite
-                    ? '© Esri World Imagery (Offline Cached)'
-                    : '© OpenStreetMap (Offline Cached)',
+                    ? (AppConfig.satelliteAttribution.isNotEmpty
+                        ? '${AppConfig.satelliteAttribution} (Offline Cached)'
+                        : 'Satellite imagery provider (Offline Cached)')
+                    : '© OpenStreetMap contributors (Offline Cached)',
                 style: TextStyle(
                   fontSize: 10,
                   color: isSatellite ? Colors.white70 : null,
