@@ -84,7 +84,7 @@ class HomeScreen extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Select route',
+                            'Choose airport pair',
                             style: theme.textTheme.titleLarge
                                 ?.copyWith(fontWeight: FontWeight.w700),
                           ),
@@ -106,6 +106,40 @@ class HomeScreen extends ConsumerWidget {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: state.route.id,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Airport pair',
+                          prefixIcon: Icon(Icons.flight_takeoff),
+                          border: OutlineInputBorder(),
+                        ),
+                        items: demoRoutes
+                            .map(
+                              (route) => DropdownMenuItem<String>(
+                                value: route.id,
+                                child: Text(
+                                  route.originCode +
+                                      ' → ' +
+                                      route.destinationCode +
+                                      '  ·  ' +
+                                      route.origin +
+                                      ' to ' +
+                                      route.destination,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(growable: false),
+                        onChanged: (routeId) {
+                          if (routeId == null || routeId == state.route.id) return;
+                          final route = demoRoutes.firstWhere(
+                            (item) => item.id == routeId,
+                          );
+                          controller.selectRoute(route);
+                        },
                       ),
                       const SizedBox(height: 12),
                       ...demoRoutes.map(
