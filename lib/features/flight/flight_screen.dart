@@ -66,10 +66,28 @@ class _FlightScreenState extends ConsumerState<FlightScreen> {
               ],
             ),
           ),
+          IconButton(
+            tooltip: state.offlineOnly
+                ? 'Offline Only is on'
+                : 'Enable Offline Only',
+            onPressed: state.isMapOfflineReady
+                ? controller.toggleOfflineOnly
+                : null,
+            icon: Icon(
+              state.offlineOnly
+                  ? Icons.wifi_off
+                  : Icons.wifi,
+              color: state.offlineOnly
+                  ? Colors.green.shade700
+                  : null,
+            ),
+          ),
           if (state.mode == FlightMode.gps)
             Padding(
               padding: const EdgeInsets.only(right: 12, left: 4),
-              child: Icon(state.gpsAvailable ? Icons.gps_fixed : Icons.gps_off),
+              child: Icon(
+                state.gpsAvailable ? Icons.gps_fixed : Icons.gps_off,
+              ),
             ),
         ],
       ),
