@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/flight_state.dart';
+import '../../core/models/poi.dart';
 import '../../core/models/gps_status.dart';
-import '../../core/services/flight_history_repository.dart';
 import '../../shared/widgets/stat_chip.dart';
 import 'flight_controller.dart';
 import 'widgets/flight_map.dart';
@@ -323,8 +323,8 @@ class _FlightInsights extends StatelessWidget {
     required this.ahead,
   });
 
-  final dynamic below;
-  final dynamic ahead;
+  final NearbyPoi? below;
+  final NearbyPoi? ahead;
 
   @override
   Widget build(BuildContext context) {
