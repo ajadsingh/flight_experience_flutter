@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -17,6 +18,9 @@ class MapDownloadStatus {
     required this.isDownloading,
     required this.isDone,
     required this.progress,
+    required this.downloadedBytes,
+    required this.failedTiles,
+    required this.cancelled,
   });
 
   final String routeId;
@@ -25,40 +29,99 @@ class MapDownloadStatus {
   final bool isDownloading;
   final bool isDone;
   final double progress;
+  final int downloadedBytes;
+  final int failedTiles;
+  final bool cancelled;
+}
+
+class OfflineMapEstimate {
+  const OfflineMapEstimate({
+    required this.routeId,
+    required this.totalTiles,
+    required this.estimatedBytes,
+  });
+
+  final String routeId;
+  final int totalTiles;
+  final int estimatedBytes;
 }
 
 class TileCacheService {
   TileCacheService._();
 
   static final TileCacheService instance = TileCacheService._();
+  static const _estimatedBytesPerTile = 30000;
 
   final Map<String, MapDownloadStatus> _statuses = {};
   final Map<String, StreamController<MapDownloadStatus>> _controllers = {};
   final Map<String, Future<void>> _active = {};
+  final Set<String> _cancelled = {};
   Directory? _rootDirectory;
-
-  bool get isInitialized => _rootDirectory != null;
-  String get rootPath => _rootDirectory?.path ?? '';
 
   Future<void> initialize() async {
     if (_rootDirectory != null) return;
+
     final root = await getApplicationSupportDirectory();
     final directory = Directory(
-      '${root.path}${Platform.pathSeparator}flight_experience_tiles',
+      '\${root.path}\${Platform.pathSeparator}flight_experience_tiles',
     );
+
     await directory.create(recursive: true);
     _rootDirectory = directory;
   }
 
   Stream<MapDownloadStatus> watchProgress(String routeId) {
-    final controller = _controllers.putIfAbsent(
-      routeId,
-      () => StreamController<MapDownloadStatus>.broadcast(),
-    );
-    return controller.stream;
+    return (_controllers[routeId] ??=
+          StreamController<MapDownloadStatus>.broadcast())
+        .stream;
   }
 
   MapDownloadStatus? getStatus(String routeId) => _statuses[routeId];
+
+  Future<MapDownloadStatus?> restoreStatus(String routeId) async {
+    await initialize();
+
+    final manifest = _manifestFile(routeId);
+    if (!await manifest.exists()) return null;
+
+    try {
+      final decoded = jsonDecode(await manifest.readAsString());
+      if (decoded is! Map<String, dynamic>) return null;
+
+      final status = MapDownloadStatus(
+        routeId: routeId,
+        downloaded: (decoded['downloaded'] as num?)?.toInt() ?? 0,
+        total: (decoded['total'] as num?)?.toInt() ?? 0,
+        isDownloading: false,
+        isDone: decoded['isDone'] == true,
+        progress:
+            ((decoded['progress'] as num?)?.toDouble() ?? 0).clamp(0.0, 1.0),
+        downloadedBytes: (decoded['downloadedBytes'] as num?)?.toInt() ?? 0,
+        failedTiles: (decoded['failedTiles'] as num?)?.toInt() ?? 0,
+        cancelled: decoded['cancelled'] == true,
+      );
+
+      _statuses[routeId] = status;
+      return status;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<OfflineMapEstimate> estimateRoute(FlightRoute route) async {
+    await initialize();
+
+    final tiles = _buildCorridorTiles(route);
+    final sourceCount =
+        1 + (AppConfig.satelliteTileUrl.isNotEmpty ? 1 : 0);
+    final totalTiles = tiles.length * sourceCount;
+
+    return OfflineMapEstimate(
+      routeId: route.id,
+      totalTiles: totalTiles,
+      estimatedBytes: totalTiles * _estimatedBytesPerTile,
+    );
+  }
 
   Future<void> cacheRoute(FlightRoute route) async {
     await initialize();
@@ -69,8 +132,10 @@ class TileCacheService {
       return;
     }
 
+    _cancelled.remove(route.id);
     final future = _cacheRouteInternal(route);
     _active[route.id] = future;
+
     try {
       await future;
     } finally {
@@ -78,6 +143,56 @@ class TileCacheService {
         _active.remove(route.id);
       }
     }
+  }
+
+  Future<void> cancelRoute(String routeId) async {
+    _cancelled.add(routeId);
+
+    final status = _statuses[routeId];
+    if (status == null || !status.isDownloading) return;
+
+    final cancelled = MapDownloadStatus(
+      routeId: routeId,
+      downloaded: status.downloaded,
+      total: status.total,
+      isDownloading: false,
+      isDone: false,
+      progress: status.progress,
+      downloadedBytes: status.downloadedBytes,
+      failedTiles: status.failedTiles,
+      cancelled: true,
+    );
+
+    _publish(cancelled);
+    await _persistStatus(cancelled);
+  }
+
+  Future<void> deleteRoute(String routeId) async {
+    await initialize();
+    await cancelRoute(routeId);
+
+    final directory = Directory(
+      '\${_rootDirectory!.path}\${Platform.pathSeparator}$routeId',
+    );
+
+    if (await directory.exists()) {
+      await directory.delete(recursive: true);
+    }
+
+    _statuses.remove(routeId);
+    _controllers[routeId]?.add(
+      MapDownloadStatus(
+        routeId: routeId,
+        downloaded: 0,
+        total: 0,
+        isDownloading: false,
+        isDone: false,
+        progress: 0,
+        downloadedBytes: 0,
+        failedTiles: 0,
+        cancelled: false,
+      ),
+    );
   }
 
   Future<void> _cacheRouteInternal(FlightRoute route) async {
@@ -95,42 +210,52 @@ class TileCacheService {
     ];
 
     final total = tiles.length * sources.length;
+
     if (total == 0) {
-      _publish(
-        MapDownloadStatus(
-          routeId: route.id,
-          downloaded: 0,
-          total: 0,
-          isDownloading: false,
-          isDone: true,
-          progress: 1,
-        ),
+      final status = MapDownloadStatus(
+        routeId: route.id,
+        downloaded: 0,
+        total: 0,
+        isDownloading: false,
+        isDone: true,
+        progress: 1,
+        downloadedBytes: 0,
+        failedTiles: 0,
+        cancelled: false,
       );
+
+      _publish(status);
+      await _persistStatus(status);
       return;
     }
 
     final client = http.Client();
-    try {
-      int downloaded = 0;
-      _publish(
-        MapDownloadStatus(
-          routeId: route.id,
-          downloaded: 0,
-          total: total,
-          isDownloading: true,
-          isDone: false,
-          progress: 0,
-        ),
-      );
 
+    try {
+      var downloaded = 0;
+      var downloadedBytes = 0;
+      var failed = 0;
       final pending = <_TileRequest>[];
+
       for (final source in sources) {
         for (final tile in tiles) {
-          final target = _tileFile(source.layerName, tile.z, tile.x, tile.y);
-          if (await target.exists() && await target.length() > 0) {
-            downloaded++;
-            continue;
+          final target = _tileFile(
+            route.id,
+            source.layerName,
+            tile.z,
+            tile.x,
+            tile.y,
+          );
+
+          if (await target.exists()) {
+            final bytes = await target.length();
+            if (bytes > 0) {
+              downloaded++;
+              downloadedBytes += bytes;
+              continue;
+            }
           }
+
           pending.add(
             _TileRequest(
               source: source,
@@ -141,57 +266,88 @@ class TileCacheService {
         }
       }
 
-      _publish(
-        MapDownloadStatus(
-          routeId: route.id,
-          downloaded: downloaded,
-          total: total,
-          isDownloading: pending.isNotEmpty,
-          isDone: pending.isEmpty,
-          progress: downloaded / total,
-        ),
+      var status = MapDownloadStatus(
+        routeId: route.id,
+        downloaded: downloaded,
+        total: total,
+        isDownloading: pending.isNotEmpty,
+        isDone: pending.isEmpty,
+        progress: downloaded / total,
+        downloadedBytes: downloadedBytes,
+        failedTiles: 0,
+        cancelled: false,
       );
+
+      _publish(status);
+      await _persistStatus(status);
 
       const concurrency = 6;
-      for (int offset = 0; offset < pending.length; offset += concurrency) {
-        final batch = pending.skip(offset).take(concurrency).toList();
-        await Future.wait(
-          batch.map(
-            (request) async {
-              final ok = await _downloadTile(client, request);
-              if (ok) downloaded++;
-              _publish(
-                MapDownloadStatus(
-                  routeId: route.id,
-                  downloaded: downloaded,
-                  total: total,
-                  isDownloading: downloaded < total,
-                  isDone: downloaded >= total,
-                  progress: (downloaded / total).clamp(0.0, 1.0),
-                ),
-              );
-            },
-          ),
-        );
-      }
 
-      final complete = downloaded >= total;
-      _publish(
-        MapDownloadStatus(
+      for (
+        var offset = 0;
+        offset < pending.length;
+        offset += concurrency
+      ) {
+        if (_cancelled.contains(route.id)) break;
+
+        final batch = pending.skip(offset).take(concurrency).toList();
+        final results = await Future.wait(
+          batch.map((request) => _downloadTile(client, request)),
+        );
+
+        for (final result in results) {
+          if (result.success) {
+            downloaded++;
+            downloadedBytes += result.bytes;
+          } else {
+            failed++;
+          }
+        }
+
+        status = MapDownloadStatus(
           routeId: route.id,
           downloaded: downloaded,
           total: total,
-          isDownloading: false,
-          isDone: complete,
+          isDownloading: true,
+          isDone: false,
           progress: (downloaded / total).clamp(0.0, 1.0),
-        ),
+          downloadedBytes: downloadedBytes,
+          failedTiles: failed,
+          cancelled: false,
+        );
+
+        _publish(status);
+        await _persistStatus(status);
+      }
+
+      final cancelled = _cancelled.contains(route.id);
+      final complete =
+          !cancelled && downloaded >= total && failed == 0;
+
+      status = MapDownloadStatus(
+        routeId: route.id,
+        downloaded: downloaded,
+        total: total,
+        isDownloading: false,
+        isDone: complete,
+        progress: (downloaded / total).clamp(0.0, 1.0),
+        downloadedBytes: downloadedBytes,
+        failedTiles: failed,
+        cancelled: cancelled,
       );
+
+      _publish(status);
+      await _persistStatus(status);
     } finally {
       client.close();
+      _cancelled.remove(route.id);
     }
   }
 
-  Future<bool> _downloadTile(http.Client client, _TileRequest request) async {
+  Future<_DownloadResult> _downloadTile(
+    http.Client client,
+    _TileRequest request,
+  ) async {
     try {
       final response = await client
           .get(
@@ -208,22 +364,47 @@ class TileCacheService {
           .timeout(const Duration(seconds: 12));
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        return false;
+        return const _DownloadResult.failure();
       }
 
       final bytes = response.bodyBytes;
-      if (bytes.isEmpty) return false;
+      if (bytes.isEmpty) return const _DownloadResult.failure();
 
       await request.target.parent.create(recursive: true);
-      final temp = File('${request.target.path}.part');
+      final temp = File('\${request.target.path}.part');
+
       await temp.writeAsBytes(bytes, flush: true);
+
       if (await request.target.exists()) {
         await request.target.delete();
       }
+
       await temp.rename(request.target.path);
-      return true;
+      return _DownloadResult.success(bytes.length);
     } catch (_) {
-      return false;
+      return const _DownloadResult.failure();
+    }
+  }
+
+  Future<void> _persistStatus(MapDownloadStatus status) async {
+    try {
+      final manifest = _manifestFile(status.routeId);
+      await manifest.parent.create(recursive: true);
+
+      await manifest.writeAsString(
+        jsonEncode({
+          'downloaded': status.downloaded,
+          'total': status.total,
+          'isDone': status.isDone,
+          'progress': status.progress,
+          'downloadedBytes': status.downloadedBytes,
+          'failedTiles': status.failedTiles,
+          'cancelled': status.cancelled,
+        }),
+        flush: true,
+      );
+    } catch (_) {
+      // Cached tiles remain usable even if the small manifest cannot persist.
     }
   }
 
@@ -232,29 +413,34 @@ class TileCacheService {
     final waypoints = route.waypoints;
     if (waypoints.isEmpty) return const [];
 
-    for (int i = 0; i < waypoints.length - 1; i++) {
+    for (var i = 0; i < waypoints.length - 1; i++) {
       final start = waypoints[i];
       final end = waypoints[i + 1];
       final distance = GeoPoint.distanceKm(start, end);
       final steps = math.max(1, (distance / 80).ceil());
 
-      for (int step = 0; step <= steps; step++) {
+      for (var step = 0; step <= steps; step++) {
         final t = step / steps;
-        final lat = start.latitude + (end.latitude - start.latitude) * t;
-        final lon = start.longitude + (end.longitude - start.longitude) * t;
+        final lat = start.latitude +
+            (end.latitude - start.latitude) * t;
+        final lon = start.longitude +
+            (end.longitude - start.longitude) * t;
 
         for (
-          int zoom = AppConfig.offlineMinZoom;
+          var zoom = AppConfig.offlineMinZoom;
           zoom <= AppConfig.offlineMaxZoom;
           zoom++
         ) {
           final tile = _latLonToTile(lat, lon, zoom);
           final max = 1 << zoom;
-          for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
+
+          for (var dx = -1; dx <= 1; dx++) {
+            for (var dy = -1; dy <= 1; dy++) {
               final wrappedX = (tile.x + dx) % max;
-              final normalizedX = wrappedX < 0 ? wrappedX + max : wrappedX;
+              final normalizedX =
+                  wrappedX < 0 ? wrappedX + max : wrappedX;
               final y = tile.y + dy;
+
               if (y >= 0 && y < max) {
                 coordinates.add(
                   _TileCoordinate(zoom, normalizedX, y),
@@ -266,71 +452,91 @@ class TileCacheService {
       }
     }
 
-    if (waypoints.length == 1) {
-      final point = waypoints.first;
-      for (
-        int zoom = AppConfig.offlineMinZoom;
-        zoom <= AppConfig.offlineMaxZoom;
-        zoom++
-      ) {
-        final tile = _latLonToTile(point.latitude, point.longitude, zoom);
-        final max = 1 << zoom;
-        for (int dx = -1; dx <= 1; dx++) {
-          for (int dy = -1; dy <= 1; dy++) {
-            final wrappedX = (tile.x + dx) % max;
-            final normalizedX = wrappedX < 0 ? wrappedX + max : wrappedX;
-            final y = tile.y + dy;
-            if (y >= 0 && y < max) {
-              coordinates.add(_TileCoordinate(zoom, normalizedX, y));
-            }
-          }
-        }
-      }
-    }
-
     return coordinates.toList()
       ..sort((a, b) {
         final z = a.z.compareTo(b.z);
         if (z != 0) return z;
+
         final x = a.x.compareTo(b.x);
         return x != 0 ? x : a.y.compareTo(b.y);
       });
   }
 
-  _TileCoordinate _latLonToTile(double lat, double lon, int zoom) {
+  _TileCoordinate _latLonToTile(
+    double lat,
+    double lon,
+    int zoom,
+  ) {
     final safeLat = lat.clamp(-85.05112878, 85.05112878);
     final n = 1 << zoom;
-    final x = ((lon + 180) / 360 * n).floor().clamp(0, n - 1);
+    final x = ((lon + 180) / 360 * n)
+        .floor()
+        .clamp(0, n - 1);
     final latRad = safeLat * math.pi / 180;
     final mercator =
-        math.log(math.tan(latRad) + (1 / math.cos(latRad))) / math.pi;
-    final y = ((1 - mercator) / 2 * n).floor().clamp(0, n - 1);
+        math.log(math.tan(latRad) + (1 / math.cos(latRad))) /
+            math.pi;
+    final y = ((1 - mercator) / 2 * n)
+        .floor()
+        .clamp(0, n - 1);
+
     return _TileCoordinate(zoom, x, y);
   }
 
-  File _tileFile(String layer, int z, int x, int y) {
+  File _tileFile(
+    String routeId,
+    String layer,
+    int z,
+    int x,
+    int y,
+  ) {
     final root = _rootDirectory;
     if (root == null) {
-      throw StateError('TileCacheService.initialize() must be called first.');
+      throw StateError(
+        'TileCacheService.initialize() must be called first.',
+      );
     }
+
     return File(
-      '${root.path}${Platform.pathSeparator}$layer'
-      '${Platform.pathSeparator}$z'
-      '${Platform.pathSeparator}$x'
-      '${Platform.pathSeparator}$y.png',
+      '\${root.path}\${Platform.pathSeparator}$routeId'
+      '\${Platform.pathSeparator}$layer'
+      '\${Platform.pathSeparator}$z'
+      '\${Platform.pathSeparator}$x'
+      '\${Platform.pathSeparator}$y.png',
     );
   }
 
-  String tilePath(String layer, int z, int x, int y) =>
-      _tileFile(layer, z, x, y).path;
+  File _manifestFile(String routeId) {
+    final root = _rootDirectory;
+    if (root == null) {
+      throw StateError(
+        'TileCacheService.initialize() must be called first.',
+      );
+    }
+
+    return File(
+      '\${root.path}\${Platform.pathSeparator}$routeId'
+      '\${Platform.pathSeparator}manifest.json',
+    );
+  }
+
+  String tilePath(
+    String routeId,
+    String layer,
+    int z,
+    int x,
+    int y,
+  ) =>
+      _tileFile(routeId, layer, z, x, y).path;
 
   String tileUrl(String template, int z, int x, int y) =>
       _tileUrl(template, z, x, y);
 
-  String _tileUrl(String template, int z, int x, int y) => template
-      .replaceAll('{z}', '$z')
-      .replaceAll('{x}', '$x')
-      .replaceAll('{y}', '$y');
+  String _tileUrl(String template, int z, int x, int y) =>
+      template
+          .replaceAll('{z}', '$z')
+          .replaceAll('{x}', '$x')
+          .replaceAll('{y}', '$y');
 
   void _publish(MapDownloadStatus status) {
     _statuses[status.routeId] = status;
@@ -358,6 +564,17 @@ class _TileRequest {
   final _TileSource source;
   final _TileCoordinate tile;
   final File target;
+}
+
+class _DownloadResult {
+  const _DownloadResult.success(this.bytes) : success = true;
+
+  const _DownloadResult.failure()
+      : success = false,
+        bytes = 0;
+
+  final bool success;
+  final int bytes;
 }
 
 class _TileCoordinate {
