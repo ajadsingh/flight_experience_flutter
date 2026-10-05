@@ -311,6 +311,8 @@ class TileCacheService {
     return File('${dir.path}${Platform.pathSeparator}$layer${Platform.pathSeparator}$z${Platform.pathSeparator}$x${Platform.pathSeparator}$y.png');
   }
 
+  String routeDirectoryPath(String routeId) => _routeDirectory(routeId).path;
+
   String tilePath(String routeId, String layer, int z, int x, int y) =>
       _tileFile(routeId, layer, z, x, y).path;
 
