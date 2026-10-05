@@ -131,6 +131,11 @@ class FlightController extends Notifier<FlightState> {
   }
 
   void selectRoute(FlightRoute route) {
+    if (state.started) {
+      unawaited(
+        _persistCurrentFlight(finalMessage: 'Previous flight saved to history'),
+      );
+    }
     _stopTracking();
     _trackBuffer.clear();
     state = FlightState.initial(route).copyWith(
@@ -458,6 +463,8 @@ class FlightController extends Notifier<FlightState> {
 
   Future<void> _persistCurrentFlight({required String finalMessage}) async {
     final startedAt = _flightStartedAt;
+    final route = state.route;
+    final duration = state.elapsed;
     _flightStartedAt = null;
     if (startedAt == null || _trackBuffer.length < 2) return;
 
@@ -465,8 +472,8 @@ class FlightController extends Notifier<FlightState> {
     final item = FlightHistoryItem(
       id: startedAt.microsecondsSinceEpoch.toString(),
       startedAt: startedAt,
-      route: state.route,
-      duration: state.elapsed,
+      route: route,
+      duration: duration,
       distanceKm: FlightHistoryItem.calculateDistanceKm(track),
       maxSpeedKmh: _maxSpeedKmh,
       maxAltitudeFt: _maxAltitudeFt,
