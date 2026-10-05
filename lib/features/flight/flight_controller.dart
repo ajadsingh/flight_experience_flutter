@@ -330,7 +330,10 @@ class FlightController extends Notifier<FlightState> {
       if (previousPoint != null && seconds > 0) {
         final jumpKm = GeoPoint.distanceKm(previousPoint, rawPoint);
         final impliedSpeed = jumpKm / (seconds / 3600);
-        if (impliedSpeed > 1500 && position.speed < 1300) {
+        final reportedSpeedKmh = position.speed.isFinite && position.speed >= 0
+            ? position.speed * 3.6
+            : 0.0;
+        if (impliedSpeed > 1500 && reportedSpeedKmh < 1300) {
           state = state.copyWith(
             message: 'Ignoring an implausible GPS jump',
           );
