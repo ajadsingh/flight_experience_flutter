@@ -173,7 +173,19 @@ class FlightController extends Notifier<FlightState> {
       ..start();
     _elapsedTimer?.cancel();
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (state.started) {
+      if (!state.started) return;
+
+      final acceptedAt = _lastAcceptedGpsTimestamp;
+      if (acceptedAt != null &&
+          DateTime.now().difference(acceptedAt) >
+              const Duration(seconds: 90)) {
+        state = state.copyWith(
+          elapsed: _stopwatch.elapsed,
+          gpsQuality: GpsQuality.rejected,
+          routeConfidence: 0,
+          message: 'No fresh GPS fix — waiting for a signal.',
+        );
+      } else {
         state = state.copyWith(elapsed: _stopwatch.elapsed);
       }
     });
