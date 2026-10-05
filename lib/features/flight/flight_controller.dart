@@ -42,6 +42,7 @@ class FlightController extends Notifier<FlightState> {
   DateTime? _flightStartedAt;
   double _maxSpeedKmh = 0;
   double _maxAltitudeFt = 0;
+  double _flightDistanceKm = 0;
 
   @override
   FlightState build() {
@@ -109,12 +110,18 @@ class FlightController extends Notifier<FlightState> {
   }
 
   void selectMode(FlightMode mode) {
+    if (state.started) {
+      unawaited(
+        _persistCurrentFlight(finalMessage: 'Previous flight saved to history'),
+      );
+    }
     _stopTracking();
     _trackBuffer.clear();
     _gpsFilter.reset();
     _flightStartedAt = null;
     _maxSpeedKmh = 0;
     _maxAltitudeFt = 0;
+    _flightDistanceKm = 0;
     _lastAcceptedGpsTimestamp = null;
     state = FlightState.initial(state.route).copyWith(
       mode: mode,
@@ -237,6 +244,7 @@ class FlightController extends Notifier<FlightState> {
     _flightStartedAt = DateTime.now();
     _maxSpeedKmh = 0;
     _maxAltitudeFt = 0;
+    _flightDistanceKm = 0;
     state = state.copyWith(started: true, gpsAvailable: true, message: 'GPS tracking live');
     return true;
   }
@@ -254,6 +262,7 @@ class FlightController extends Notifier<FlightState> {
     _flightStartedAt = DateTime.now();
     _maxSpeedKmh = 0;
     _maxAltitudeFt = 0;
+    _flightDistanceKm = 0;
     _demo.start(state.route, (tick) {
       _update(
         position: tick.position,
@@ -407,6 +416,10 @@ class FlightController extends Notifier<FlightState> {
     _maxSpeedKmh = speedKmh > _maxSpeedKmh ? speedKmh : _maxSpeedKmh;
     _maxAltitudeFt =
         altitudeFt > _maxAltitudeFt ? altitudeFt : _maxAltitudeFt;
+    if (_trackBuffer.isNotEmpty) {
+      _flightDistanceKm +=
+          GeoPoint.distanceKm(_trackBuffer.last, position);
+    }
 
     _trackBuffer.add(position);
     if (_trackBuffer.length > _maxTrackPoints) {
@@ -474,7 +487,7 @@ class FlightController extends Notifier<FlightState> {
       startedAt: startedAt,
       route: route,
       duration: duration,
-      distanceKm: FlightHistoryItem.calculateDistanceKm(track),
+      distanceKm: _flightDistanceKm,
       maxSpeedKmh: _maxSpeedKmh,
       maxAltitudeFt: _maxAltitudeFt,
       track: track,
