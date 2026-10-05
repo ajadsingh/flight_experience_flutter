@@ -26,8 +26,8 @@ class FlightMap extends StatefulWidget {
 
 class _FlightMapState extends State<FlightMap> {
   LatLng? _lastCenter;
-  late final OfflineCachedTileProvider _streetTileProvider;
-  late final OfflineCachedTileProvider _satelliteTileProvider;
+  late OfflineCachedTileProvider _streetTileProvider;
+  late OfflineCachedTileProvider _satelliteTileProvider;
 
   @override
   void initState() {
