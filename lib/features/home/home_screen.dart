@@ -111,7 +111,7 @@ class HomeScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              'Auto-Cache Map',
+                              'Prepare Offline Pack',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: colorScheme.onPrimaryContainer,
                                 fontWeight: FontWeight.bold,
