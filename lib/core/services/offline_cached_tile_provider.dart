@@ -33,9 +33,11 @@ class OfflineCachedTileProvider extends TileProvider {
       return FileImage(cacheFile);
     }
 
+    final template = options.urlTemplate ?? AppConfig.defaultTileUrl;
+
     return NetworkImage(
       TileCacheService.instance.tileUrl(
-        options.urlTemplate,
+        template,
         coordinates.z,
         coordinates.x,
         coordinates.y,
