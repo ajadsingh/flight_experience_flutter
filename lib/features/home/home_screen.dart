@@ -32,7 +32,7 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'High-resolution satellite view, GPS tracking, and offline landmarks — even in Airplane Mode.',
+                'GPS tracking, an offline route map, and nearby landmarks — designed to keep working in Airplane Mode.',
                 style: theme.textTheme.bodyLarge,
               ),
               const SizedBox(height: 24),
@@ -150,7 +150,7 @@ class HomeScreen extends ConsumerWidget {
                       const SizedBox(height: 10),
                       const _Feature(
                         icon: Icons.satellite_alt,
-                        text: 'High-res satellite & terrain view with auto-caching',
+                        text: 'Offline street-map corridor with automatic tile caching',
                       ),
                       const _Feature(
                         icon: Icons.flight,
@@ -162,7 +162,7 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       const _Feature(
                         icon: Icons.wifi_off_rounded,
-                        text: '100% offline capability in Airplane Mode inside the cabin',
+                        text: 'GPS and cached map continue working when the phone is offline',
                       ),
                     ],
                   ),
@@ -187,7 +187,9 @@ class HomeScreen extends ConsumerWidget {
               Text(
                 state.isMapOfflineReady
                     ? '🟢 Offline Map Ready — All satellite & street tiles cached for this route.'
-                    : '📥 Downloading map tiles in background for offline in-flight use...',
+                    : state.isMapDownloading
+                        ? '📥 Downloading route tiles for offline in-flight use...'
+                        : '📶 Connect to the internet before the flight to prepare the offline map.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: state.isMapOfflineReady
