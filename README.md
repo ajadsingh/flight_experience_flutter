@@ -23,7 +23,7 @@ A passenger-focused Android application that turns a flight into an interactive 
 
 The app is designed around a simple passenger workflow:
 
-1. While online, select the route and let the corridor cache finish.
+1. While online, select the route and tap `Prepare Offline Pack`.
 2. Start the Flight Experience.
 3. During the flight, GPS continues to update the aircraft marker and breadcrumb trail.
 4. Route-scoped cached map tiles and the prepared POI pack remain available without internet access.
@@ -38,8 +38,8 @@ The learning-build offline pack covers zoom levels 6–10 around the planned cor
 3. The included POI dataset is intentionally small for the MVP.
 4. The learning build uses a directory-based raster tile pack. Bulk/offline downloading should only be used in accordance with the tile provider's usage policy. For production, replace this adapter with a licensed offline map pack such as an appropriate MBTiles/PMTiles-based dataset.
 5. Satellite imagery is disabled by default. To enable it, provide a licensed provider URL and its required attribution at build time.
-7. Background tracking while the app is fully suspended is not enabled in this MVP. The flight screen is designed to remain active.
-8. This repository contains the Flutter source pack and generated Android project. The bootstrap scripts can recreate an Android project from the source on a machine with Flutter installed.
+6. Background tracking while the app is fully suspended is not enabled in this MVP. The flight screen is designed to remain active.
+7. This repository contains the Flutter source pack and generated Android project. The bootstrap scripts can recreate an Android project from the source on a machine with Flutter installed.
 
 ## Run
 
@@ -76,7 +76,7 @@ The Home screen includes route-specific pack status, storage size, retry feedbac
 
 ## Android release artifacts
 
-GitHub Actions now runs analyze/tests and builds a release APK and AAB artifact on every `main` push. The current learning Android project still uses the debug signing config in `android/app/build.gradle.kts`; production distribution requires a real keystore and GitHub secrets before publishing.
+GitHub Actions now runs analyze/tests and builds a release APK and AAB artifact when a `v*` tag is pushed or the workflow is manually dispatched. The current learning Android project still uses the debug signing config in `android/app/build.gradle.kts`; production distribution requires a real keystore and GitHub secrets before publishing.
 
 ## Suggested production next steps
 
