@@ -44,9 +44,6 @@ class FlightController extends Notifier<FlightState> {
     _poisLoaded = _loadPois(route);
     ref.onDispose(_stopAll);
 
-    // Auto-start caching map tiles for default route after initial build
-    scheduleMicrotask(() => _autoCacheRoute(route));
-
     return FlightState.initial(route).copyWith(
       satelliteAvailable: AppConfig.satelliteTileUrl.isNotEmpty,
     );
@@ -140,9 +137,8 @@ class FlightController extends Notifier<FlightState> {
           ? 'Demo flight ready'
           : 'GPS mode ready — tap Start',
     );
-    // Prepare route-specific map + POI offline pack.
+    // Route selection is intentionally offline-pack opt-in; download is user-triggered.
     _poisLoaded = _loadPois(route);
-    unawaited(_autoCacheRoute(route));
   }
 
   Future<void> cacheCurrentRoute() async {
