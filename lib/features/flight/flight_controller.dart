@@ -13,6 +13,7 @@ import '../../core/services/flight_route_metrics.dart';
 import '../../core/services/nearby_poi_service.dart';
 import '../../core/services/poi_repository.dart';
 import '../../core/services/tile_cache_service.dart';
+import '../../core/services/offline_pack_service.dart';
 import 'flight_routes.dart';
 
 final flightControllerProvider =
@@ -41,7 +42,7 @@ class FlightController extends Notifier<FlightState> {
   @override
   FlightState build() {
     final route = demoRoutes.first;
-    _poisLoaded = _loadPois();
+    _poisLoaded = _loadPois(route);
     ref.onDispose(_stopAll);
 
     // Auto-start caching map tiles for default route after initial build
@@ -52,12 +53,13 @@ class FlightController extends Notifier<FlightState> {
     );
   }
 
-  Future<void> _loadPois() async {
+  Future<void> _loadPois(FlightRoute route) async {
     try {
-      final pois = await const PoiRepository().load();
+      final pois = await OfflinePackService.instance.loadPois(route);
       _nearbyService = NearbyPoiService(pois);
     } catch (e) {
       debugPrint('FlightController: POI load failed — $e');
+      _nearbyService = NearbyPoiService(const []);
     }
   }
 
@@ -99,7 +101,7 @@ class FlightController extends Notifier<FlightState> {
     }
 
     try {
-      await TileCacheService.instance.cacheRoute(route);
+      await OfflinePackService.instance.prepare(route);
     } catch (e) {
       debugPrint('FlightController: Map caching failed — $e');
     }
@@ -139,12 +141,30 @@ class FlightController extends Notifier<FlightState> {
           ? 'Demo flight ready'
           : 'GPS mode ready — tap Start',
     );
-    // Auto-download route map when user selects route
+    // Prepare route-specific map + POI offline pack.
+    _poisLoaded = _loadPois(route);
     unawaited(_autoCacheRoute(route));
   }
 
   Future<void> cacheCurrentRoute() async {
     await _autoCacheRoute(state.route);
+    _poisLoaded = _loadPois(state.route);
+  }
+
+  void toggleOfflineOnly() {
+    if (!state.isMapOfflineReady) {
+      state = state.copyWith(
+        message: 'Prepare the offline pack before enabling Offline Only mode.',
+      );
+      return;
+    }
+    final enabled = !state.offlineOnly;
+    state = state.copyWith(
+      offlineOnly: enabled,
+      message: enabled
+          ? 'Offline Only enabled — map will not use network.'
+          : 'Offline Only disabled — network fallback is allowed.',
+    );
   }
 
   Future<bool> start() async {
