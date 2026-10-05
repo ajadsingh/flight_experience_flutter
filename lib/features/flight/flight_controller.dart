@@ -381,6 +381,8 @@ class FlightController extends Notifier<FlightState> {
       routeConfidence: routeConfidence,
       lastGpsTimestamp: lastGpsTimestamp,
       mockLocationRejected: mockLocationRejected,
+      clearBelowPoi: poiSnapshot.below == null,
+      clearAheadPoi: poiSnapshot.ahead == null,
     );
   }
 
