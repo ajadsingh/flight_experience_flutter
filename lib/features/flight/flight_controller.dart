@@ -168,16 +168,15 @@ class FlightController extends Notifier<FlightState> {
   Future<void> deleteCurrentOfflineMap() async {
     await TileCacheService.instance.deleteRoute(state.route.id);
     state = state.copyWith(
-        mapDownloadProgress: 0,
-        isMapDownloading: false,
-        isMapOfflineReady: false,
-        downloadedTiles: 0,
-        totalTiles: 0,
-        downloadedBytes: 0,
-        failedTiles: 0,
-        mapDownloadCancelled: false,
-      );
-    }
+      mapDownloadProgress: 0,
+      isMapDownloading: false,
+      isMapOfflineReady: false,
+      downloadedTiles: 0,
+      totalTiles: 0,
+      downloadedBytes: 0,
+      failedTiles: 0,
+      mapDownloadCancelled: false,
+    );
   }
 
   void selectMode(FlightMode mode) {
