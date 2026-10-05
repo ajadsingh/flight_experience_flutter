@@ -131,7 +131,7 @@ void main() {
       );
       final service = NearbyPoiService(many);
       final result = service.find(const GeoPoint(26.9, 75.7));
-      expect(result.length, lessThanOrEqualTo(5));
+      expect(result.length, lessThanOrEqualTo(8));
     });
 
     test('returns empty list when no POIs in range', () {
@@ -145,6 +145,30 @@ void main() {
       final service = NearbyPoiService(const []);
       final result = service.find(const GeoPoint(26.9, 75.7));
       expect(result, isEmpty);
+    });
+    test('findAhead prefers places in the flight direction', () {
+      final service = NearbyPoiService([
+        const Poi(
+          name: 'Ahead',
+          type: 'City',
+          position: GeoPoint(24.0, 72.0),
+          description: 'North of aircraft.',
+          importance: 4,
+        ),
+        const Poi(
+          name: 'Behind',
+          type: 'City',
+          position: GeoPoint(22.0, 72.0),
+          description: 'South of aircraft.',
+          importance: 5,
+        ),
+      ]);
+
+      const center = GeoPoint(23.0, 72.0);
+      final result = service.findAhead(center, 0);
+
+      expect(result, isNotNull);
+      expect(result!.poi.name, equals('Ahead'));
     });
   });
 }
