@@ -359,7 +359,10 @@ class FlightController extends Notifier<FlightState> {
       _trackBuffer.removeAt(0);
     }
 
-    final nearby = _nearbyService.find(position);
+    final poiSnapshot = _nearbyService.discover(
+      position,
+      headingDegrees: heading,
+    );
     state = state.copyWith(
       currentPosition: position,
       track: List.unmodifiable(_trackBuffer),
@@ -367,7 +370,9 @@ class FlightController extends Notifier<FlightState> {
       speedKmh: speedKmh,
       altitudeFt: altitudeFt,
       heading: heading,
-      nearby: nearby,
+      nearby: poiSnapshot.nearby,
+      belowPoi: poiSnapshot.below,
+      aheadPoi: poiSnapshot.ahead,
       elapsed: elapsed,
       message: message,
       gpsQuality: gpsQuality,
