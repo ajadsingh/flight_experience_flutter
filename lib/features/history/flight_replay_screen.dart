@@ -7,7 +7,7 @@ import '../../core/models/gps_status.dart';
 import '../../core/models/flight_record.dart';
 import '../../core/models/geo_point.dart';
 import '../flight/widgets/flight_map.dart';
-import 'flight_history_screen.dart';
+import '../../shared/utils/formatters.dart';
 
 class FlightReplayScreen extends StatefulWidget {
   const FlightReplayScreen({super.key, required this.record});
