@@ -476,18 +476,20 @@ class TileCacheService {
     double lon,
     int zoom,
   ) {
-    final safeLat = lat.clamp(-85.05112878, 85.05112878);
+    final safeLat = lat.clamp(-85.05112878, 85.05112878).toDouble();
     final n = 1 << zoom;
     final x = ((lon + 180) / 360 * n)
         .floor()
-        .clamp(0, n - 1);
+        .clamp(0, n - 1)
+        .toInt();
     final latRad = safeLat * math.pi / 180;
     final mercator =
         math.log(math.tan(latRad) + (1 / math.cos(latRad))) /
             math.pi;
     final y = ((1 - mercator) / 2 * n)
         .floor()
-        .clamp(0, n - 1);
+        .clamp(0, n - 1)
+        .toInt();
 
     return _TileCoordinate(zoom, x, y);
   }
