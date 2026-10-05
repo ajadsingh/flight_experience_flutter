@@ -1,5 +1,20 @@
 enum GpsQuality { noFix, poor, fair, good }
 
+extension GpsQualityLabel on GpsQuality {
+  String get label {
+    switch (this) {
+      case GpsQuality.good:
+        return 'Good';
+      case GpsQuality.fair:
+        return 'Fair';
+      case GpsQuality.poor:
+        return 'Weak';
+      case GpsQuality.noFix:
+        return 'No Fix';
+    }
+  }
+}
+
 class GpsStatus {
   const GpsStatus({
     required this.quality,
