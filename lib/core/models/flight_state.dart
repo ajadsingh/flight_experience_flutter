@@ -42,10 +42,10 @@ class FlightState {
         heading: 0,
         nearby: const [],
         elapsed: Duration.zero,
-        mapLayer: MapLayer.satellite, // Default to satellite for flight simulation
+        mapLayer: MapLayer.street,
         message: 'Ready to start',
         gpsAvailable: false,
-        satelliteAvailable: true,
+        satelliteAvailable: false,
         mapDownloadProgress: 0.0,
         isMapDownloading: false,
         isMapOfflineReady: false,
