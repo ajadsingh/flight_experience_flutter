@@ -318,8 +318,12 @@ class _ProfilePainter extends CustomPainter {
 
     final values =
         samples.map((sample) => sample.altitudeFt).toList();
-    final minValue = values.reduce(math.min);
-    final maxValue = values.reduce(math.max);
+    var minValue = values.first;
+    var maxValue = values.first;
+    for (final value in values.skip(1)) {
+      if (value < minValue) minValue = value;
+      if (value > maxValue) maxValue = value;
+    }
     final range = math.max(1, maxValue - minValue);
 
     final line = Paint()
