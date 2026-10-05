@@ -11,7 +11,7 @@ class FlightMap extends StatefulWidget {
   final FlightState state;
 
   @override
-  State<FlightMap> createState() => _FlightMapState();
+  State<FlightMap> createState() => FlightMapState();
 }
 
 class FlightMapState extends State<FlightMap> {
