@@ -75,20 +75,24 @@ class FlightController extends Notifier<FlightState> {
   }
 
   Future<void> _restoreCacheStatus(FlightRoute route) async {
-    final status =
-        await TileCacheService.instance.restoreStatus(route.id);
-    if (status == null || state.route.id != route.id) return;
+    try {
+      final status =
+          await TileCacheService.instance.restoreStatus(route.id);
+      if (status == null || state.route.id != route.id) return;
 
-    state = state.copyWith(
-      mapDownloadProgress: status.progress,
-      isMapDownloading: false,
-      isMapOfflineReady: status.isDone,
-      downloadedTiles: status.downloaded,
-      totalTiles: status.total,
-      downloadedBytes: status.downloadedBytes,
-      failedTiles: status.failedTiles,
-      mapDownloadCancelled: status.cancelled,
-    );
+      state = state.copyWith(
+        mapDownloadProgress: status.progress,
+        isMapDownloading: false,
+        isMapOfflineReady: status.isDone,
+        downloadedTiles: status.downloaded,
+        totalTiles: status.total,
+        downloadedBytes: status.downloadedBytes,
+        failedTiles: status.failedTiles,
+        mapDownloadCancelled: status.cancelled,
+      );
+    } catch (error) {
+      debugPrint('FlightController: cached map status unavailable: $error');
+    }
   }
 
   Future<void> _watchAndCacheRoute(FlightRoute route) async {
