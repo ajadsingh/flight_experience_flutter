@@ -6,6 +6,8 @@ enum FlightMode { demo, gps }
 
 enum MapLayer { street, satellite }
 
+enum GpsQuality { unknown, good, fair, poor, rejected }
+
 class FlightState {
   const FlightState({
     required this.mode,
@@ -23,6 +25,14 @@ class FlightState {
     required this.message,
     required this.gpsAvailable,
     required this.satelliteAvailable,
+    this.gpsQuality,
+    this.gpsAccuracyMeters,
+    this.routeDeviationKm,
+    this.routeConfidence,
+    this.lastGpsTimestamp,
+    this.mockLocationRejected,
+    this.cacheFailedTiles,
+    this.cacheError,
     this.mapDownloadProgress = 0.0,
     this.isMapDownloading = false,
     this.isMapOfflineReady = false,
@@ -46,6 +56,14 @@ class FlightState {
         message: 'Ready to start',
         gpsAvailable: false,
         satelliteAvailable: false,
+        gpsQuality: GpsQuality.unknown,
+        gpsAccuracyMeters: 0,
+        routeDeviationKm: 0,
+        routeConfidence: 0,
+        lastGpsTimestamp: null,
+        mockLocationRejected: false,
+        cacheFailedTiles: 0,
+        cacheError: null,
         mapDownloadProgress: 0.0,
         isMapDownloading: false,
         isMapOfflineReady: false,
@@ -68,6 +86,15 @@ class FlightState {
   final String message;
   final bool gpsAvailable;
   final bool satelliteAvailable;
+
+  final GpsQuality gpsQuality;
+  final double gpsAccuracyMeters;
+  final double routeDeviationKm;
+  final double routeConfidence;
+  final DateTime? lastGpsTimestamp;
+  final bool mockLocationRejected;
+  final int cacheFailedTiles;
+  final String? cacheError;
 
   // Offline map download state
   final double mapDownloadProgress;
@@ -92,6 +119,14 @@ class FlightState {
     String? message,
     bool? gpsAvailable,
     bool? satelliteAvailable,
+    GpsQuality? gpsQuality,
+    double? gpsAccuracyMeters,
+    double? routeDeviationKm,
+    double? routeConfidence,
+    DateTime? lastGpsTimestamp,
+    bool? mockLocationRejected,
+    int? cacheFailedTiles,
+    String? cacheError,
     double? mapDownloadProgress,
     bool? isMapDownloading,
     bool? isMapOfflineReady,
@@ -114,6 +149,14 @@ class FlightState {
       message: message ?? this.message,
       gpsAvailable: gpsAvailable ?? this.gpsAvailable,
       satelliteAvailable: satelliteAvailable ?? this.satelliteAvailable,
+      gpsQuality: gpsQuality ?? this.gpsQuality,
+      gpsAccuracyMeters: gpsAccuracyMeters ?? this.gpsAccuracyMeters,
+      routeDeviationKm: routeDeviationKm ?? this.routeDeviationKm,
+      routeConfidence: routeConfidence ?? this.routeConfidence,
+      lastGpsTimestamp: lastGpsTimestamp ?? this.lastGpsTimestamp,
+      mockLocationRejected: mockLocationRejected ?? this.mockLocationRejected,
+      cacheFailedTiles: cacheFailedTiles ?? this.cacheFailedTiles,
+      cacheError: cacheError ?? this.cacheError,
       mapDownloadProgress: mapDownloadProgress ?? this.mapDownloadProgress,
       isMapDownloading: isMapDownloading ?? this.isMapDownloading,
       isMapOfflineReady: isMapOfflineReady ?? this.isMapOfflineReady,
