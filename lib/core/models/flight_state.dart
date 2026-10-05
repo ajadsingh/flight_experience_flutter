@@ -1,7 +1,7 @@
 import 'flight_route.dart';
 import 'geo_point.dart';
 import 'poi.dart';
-import '../services/gps_quality_service.dart';
+import 'gps_status.dart';
 
 enum FlightMode { demo, gps }
 
@@ -122,6 +122,8 @@ class FlightState {
     List<NearbyPoi>? nearby,
     NearbyPoi? below,
     NearbyPoi? ahead,
+    bool clearBelow = false,
+    bool clearAhead = false,
     Duration? elapsed,
     MapLayer? mapLayer,
     String? message,
@@ -153,8 +155,8 @@ class FlightState {
       altitudeFt: altitudeFt ?? this.altitudeFt,
       heading: heading ?? this.heading,
       nearby: nearby ?? this.nearby,
-      below: below ?? this.below,
-      ahead: ahead ?? this.ahead,
+      below: clearBelow ? null : (below ?? this.below),
+      ahead: clearAhead ? null : (ahead ?? this.ahead),
       elapsed: elapsed ?? this.elapsed,
       mapLayer: mapLayer ?? this.mapLayer,
       message: message ?? this.message,
