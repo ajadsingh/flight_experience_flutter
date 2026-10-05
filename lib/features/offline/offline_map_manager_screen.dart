@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/models/flight_route.dart';
 import '../../core/services/tile_cache_service.dart';
 import '../flight/flight_routes.dart';
 
@@ -23,7 +24,7 @@ class OfflineMapManagerScreen extends StatelessWidget {
 class _OfflineRouteCard extends StatelessWidget {
   const _OfflineRouteCard({required this.route});
 
-  final dynamic route;
+  final FlightRoute route;
 
   @override
   Widget build(BuildContext context) {
