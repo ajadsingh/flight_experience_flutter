@@ -3,8 +3,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-
 import '../../core/constants/app_config.dart';
 import '../../core/models/flight_history_item.dart';
 import '../../core/services/offline_cached_tile_provider.dart';
@@ -22,6 +20,7 @@ class _FlightReplayScreenState extends State<FlightReplayScreen> {
   Timer? _timer;
   int _index = 0;
   bool _playing = false;
+  bool _perspective = false;
   late final OfflineCachedTileProvider _tileProvider;
 
   @override
@@ -86,7 +85,18 @@ class _FlightReplayScreenState extends State<FlightReplayScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.item.route.originCode} → ${widget.item.route.destinationCode} Replay'),
+        title: Text(
+          '${widget.item.route.originCode} → ${widget.item.route.destinationCode} Replay',
+        ),
+        actions: [
+          IconButton(
+            tooltip: _perspective ? 'Flat map' : '3D perspective',
+            onPressed: () => setState(() => _perspective = !_perspective),
+            icon: Icon(
+              _perspective ? Icons.view_in_ar : Icons.threed_rotation,
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -94,8 +104,14 @@ class _FlightReplayScreenState extends State<FlightReplayScreen> {
             child: Stack(
               children: [
                 Positioned.fill(
-                  child: FlutterMap(
-                    options: MapOptions(
+                  child: Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.001)
+                      ..rotateX(_perspective ? -0.42 : 0),
+                    child: ClipRect(
+                      child: FlutterMap(
+                        options: MapOptions(
                       initialCenter: point,
                       initialZoom: 6.2,
                       minZoom: 3,
@@ -154,7 +170,8 @@ class _FlightReplayScreenState extends State<FlightReplayScreen> {
                           ),
                         ],
                       ),
-                    ],
+                      ),
+                    ),
                   ),
                 ),
                 Positioned(
