@@ -51,6 +51,7 @@ class OfflinePackService {
     final status = _tiles.getStatus(route.id);
     final storage = await _tiles.storageBytesForRoute(route.id);
     final poiCount = await _pois.countForRoute(route);
+    final hasPoiPack = await this.hasPoiPack(route.id);
     return OfflinePackInfo(
       routeId: route.id,
       totalTiles: status?.total ?? estimate.totalTiles,
@@ -58,7 +59,7 @@ class OfflinePackService {
       failedTiles: status?.failed ?? 0,
       storageBytes: storage,
       poiCount: poiCount,
-      isReady: status?.isDone == true && status?.failed == 0 && poiCount > 0,
+      isReady: status?.isDone == true && status?.failed == 0 && hasPoiPack && poiCount > 0,
     );
   }
 
