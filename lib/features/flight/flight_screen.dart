@@ -382,10 +382,11 @@ class _InfoPill extends StatelessWidget {
     );
   }
 
-  double _zoomForAltitude(double altitudeFt) {
+double _zoomForAltitude(double altitudeFt) {
     const minZoom = 5.5;
     const maxZoom = 10.0;
     final fraction = (altitudeFt / 40000).clamp(0.0, 1.0);
     return maxZoom - fraction * (maxZoom - minZoom);
   }
+
 }
