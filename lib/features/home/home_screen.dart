@@ -186,7 +186,7 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 state.isMapOfflineReady
-                    ? '🟢 Offline Map Ready — All satellite & street tiles cached for this route.'
+                    ? '🟢 Offline Map Ready — ${state.downloadedTiles}/${state.totalTiles} route tiles cached.'
                     : state.isMapDownloading
                         ? '📥 Downloading route tiles for offline in-flight use...'
                         : '📶 Connect to the internet before the flight to prepare the offline map.',
@@ -247,7 +247,7 @@ class _OfflineMapStatusCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     isDone
-                        ? 'Offline Map Ready (Satellite & Street)'
+                        ? 'Offline Map Ready'
                         : (isDownloading
                             ? 'Downloading Offline Corridor Map...'
                             : 'Offline Map Cache'),
@@ -293,14 +293,14 @@ class _OfflineMapStatusCard extends StatelessWidget {
               ),
             ] else if (isDone) ...[
               Text(
-                'High-resolution satellite view is cached on this device. You can safely switch to Airplane Mode on your flight.',
+                'The configured route tiles are stored locally. You can switch to Airplane Mode and continue using the cached corridor.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: Colors.green.shade800,
                 ),
               ),
             ] else ...[
               Text(
-                'Tap route to auto-cache tiles for offline flight use.',
+                'Tap Download while online to prepare the selected route for offline use.',
                 style: theme.textTheme.bodySmall,
               ),
             ],
