@@ -113,7 +113,7 @@ class FlightMapState extends State<FlightMap> {
     const maxZoom = 10.0;
     const maxAlt = 40000.0;
     final fraction = (altitudeFt / maxAlt).clamp(0.0, 1.0);
-    return maxZoom - fraction * (maxZoom - minZoom);
+    return (maxZoom - fraction * (maxZoom - minZoom)).toDouble();
   }
 
   @override
