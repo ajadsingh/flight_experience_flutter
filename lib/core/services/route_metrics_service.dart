@@ -108,7 +108,9 @@ class RouteMetricsService {
     final lengthSquared = dx * dx + dy * dy;
     final t = lengthSquared <= 0
         ? 0.0
-        : ((px * dx + py * dy) / lengthSquared).clamp(0.0, 1.0);
+        : ((px * dx + py * dy) / lengthSquared)
+            .clamp(0.0, 1.0)
+            .toDouble();
 
     final projected = GeoPoint(
       start.latitude + (end.latitude - start.latitude) * t,
