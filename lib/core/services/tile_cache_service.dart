@@ -95,7 +95,9 @@ class TileCacheService {
         isDownloading: false,
         isDone: decoded['isDone'] == true,
         progress:
-            ((decoded['progress'] as num?)?.toDouble() ?? 0).clamp(0.0, 1.0),
+            ((decoded['progress'] as num?)?.toDouble() ?? 0)
+                .clamp(0.0, 1.0)
+                .toDouble(),
         downloadedBytes: (decoded['downloadedBytes'] as num?)?.toInt() ?? 0,
         failedTiles: (decoded['failedTiles'] as num?)?.toInt() ?? 0,
         cancelled: decoded['cancelled'] == true,
@@ -319,7 +321,7 @@ class TileCacheService {
           total: total,
           isDownloading: true,
           isDone: false,
-          progress: (downloaded / total).clamp(0.0, 1.0),
+          progress: (downloaded / total).clamp(0.0, 1.0).toDouble(),
           downloadedBytes: downloadedBytes,
           failedTiles: failed,
           cancelled: false,
@@ -426,7 +428,7 @@ class TileCacheService {
       final start = waypoints[i];
       final end = waypoints[i + 1];
       final distance = GeoPoint.distanceKm(start, end);
-      final steps = math.max(1, (distance / 80).ceil());
+      final steps = math.max(1, (distance / 80).ceil()).toInt();
 
       for (var step = 0; step <= steps; step++) {
         final t = step / steps;
