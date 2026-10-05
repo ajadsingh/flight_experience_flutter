@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -9,6 +8,8 @@ import '../../core/models/flight_state.dart';
 import '../../core/models/geo_point.dart';
 import '../../core/services/demo_flight_service.dart';
 import '../../core/services/gps_service.dart';
+import '../../core/services/gps_position_filter.dart';
+import '../../core/services/flight_route_metrics.dart';
 import '../../core/services/nearby_poi_service.dart';
 import '../../core/services/poi_repository.dart';
 import '../../core/services/tile_cache_service.dart';
@@ -20,6 +21,8 @@ final flightControllerProvider =
 class FlightController extends Notifier<FlightState> {
   final _demo = DemoFlightService();
   final _gps = GpsService();
+  final _gpsFilter = GpsPositionFilter();
+  DateTime? _lastAcceptedGpsTimestamp;
   StreamSubscription<Position>? _gpsSubscription;
   StreamSubscription<MapDownloadStatus>? _cacheSubscription;
 
@@ -68,6 +71,8 @@ class FlightController extends Notifier<FlightState> {
         isMapOfflineReady: status.isDone,
         downloadedTiles: status.downloaded,
         totalTiles: status.total,
+        cacheFailedTiles: status.failed,
+        cacheError: status.error,
       );
     });
 
@@ -79,6 +84,8 @@ class FlightController extends Notifier<FlightState> {
         isMapOfflineReady: currentStatus.isDone,
         downloadedTiles: currentStatus.downloaded,
         totalTiles: currentStatus.total,
+        cacheFailedTiles: currentStatus.failed,
+        cacheError: currentStatus.error,
       );
       if (currentStatus.isDone) return;
     } else {
@@ -99,6 +106,8 @@ class FlightController extends Notifier<FlightState> {
   void selectMode(FlightMode mode) {
     _stopTracking();
     _trackBuffer.clear();
+    _gpsFilter.reset();
+    _lastAcceptedGpsTimestamp = null;
     state = FlightState.initial(state.route).copyWith(
       mode: mode,
       satelliteAvailable: AppConfig.satelliteTileUrl.isNotEmpty,
@@ -154,6 +163,8 @@ class FlightController extends Notifier<FlightState> {
     }
 
     _gpsSubscription?.cancel();
+    _gpsFilter.reset();
+    _lastAcceptedGpsTimestamp = null;
 
     _stopwatch
       ..reset()
@@ -196,70 +207,122 @@ class FlightController extends Notifier<FlightState> {
   }
 
   void _handleGpsPosition(Position position) {
-    final point = _gps.toGeoPoint(position);
-    final segmentProgress = _computeSegmentProgress(point);
+    final now = DateTime.now();
+    final timestamp = position.timestamp;
+    final age = now.difference(timestamp);
+
+    if (age > const Duration(minutes: 2) || age < const Duration(minutes: -2)) {
+      state = state.copyWith(
+        gpsQuality: GpsQuality.rejected,
+        gpsAccuracyMeters: position.accuracy,
+        message: 'Waiting for a fresh GPS fix.',
+      );
+      return;
+    }
+
+    if (position.isMocked && !AppConfig.allowMockGps) {
+      state = state.copyWith(
+        gpsQuality: GpsQuality.rejected,
+        gpsAccuracyMeters: position.accuracy,
+        mockLocationRejected: true,
+        message: 'Mock GPS location rejected.',
+      );
+      return;
+    }
+
+    final accuracy = position.accuracy;
+    final quality = _gpsQuality(accuracy);
+    if (quality == GpsQuality.rejected) {
+      state = state.copyWith(
+        gpsQuality: quality,
+        gpsAccuracyMeters: accuracy,
+        message: 'GPS accuracy is too low — waiting for a better fix.',
+      );
+      return;
+    }
+
+    final rawPoint = _gps.toGeoPoint(position);
+    final point = _gpsFilter.update(raw: rawPoint, accuracyMeters: accuracy);
+    if (point == null) {
+      state = state.copyWith(
+        gpsQuality: GpsQuality.rejected,
+        gpsAccuracyMeters: accuracy,
+        message: 'GPS fix rejected as an outlier.',
+      );
+      return;
+    }
+
+    _lastAcceptedGpsTimestamp = timestamp;
+    final metrics = FlightRouteMetrics.calculate(state.route, point);
+    final confidence = _routeConfidence(
+      deviationKm: metrics.deviationKm,
+      accuracyMeters: accuracy,
+    );
 
     final speedKmh = position.speed.isFinite && position.speed >= 0
         ? position.speed * 3.6
         : 0.0;
-    final altitudeFt =
-        position.altitude.isFinite ? position.altitude * 3.28084 : 0.0;
+    final altitudeFt = position.altitude.isFinite
+        ? position.altitude * 3.28084
+        : state.altitudeFt;
     final heading = position.heading.isFinite && position.heading >= 0
         ? position.heading
         : state.heading;
 
     _update(
       position: point,
-      progress: segmentProgress,
+      progress: metrics.progress,
       speedKmh: speedKmh,
       altitudeFt: altitudeFt,
       heading: heading,
       elapsed: _stopwatch.elapsed,
-      message: 'GPS tracking live',
+      message: _gpsMessage(quality, metrics.deviationKm),
+      gpsQuality: quality,
+      gpsAccuracyMeters: accuracy,
+      routeDeviationKm: metrics.deviationKm,
+      routeConfidence: confidence,
+      lastGpsTimestamp: _lastAcceptedGpsTimestamp,
+      mockLocationRejected: false,
     );
   }
 
-  double _computeSegmentProgress(GeoPoint position) {
-    final waypoints = state.route.waypoints;
-    if (waypoints.length < 2) return 0.0;
+  GpsQuality _gpsQuality(double accuracyMeters) {
+    if (!accuracyMeters.isFinite || accuracyMeters < 0) return GpsQuality.rejected;
+    if (accuracyMeters <= 30) return GpsQuality.good;
+    if (accuracyMeters <= 100) return GpsQuality.fair;
+    if (accuracyMeters <= 250) return GpsQuality.poor;
+    return GpsQuality.rejected;
+  }
 
-    double totalDistance = 0;
-    final segLengths = <double>[];
-    for (int i = 0; i < waypoints.length - 1; i++) {
-      final d = GeoPoint.distanceKm(waypoints[i], waypoints[i + 1]);
-      segLengths.add(d);
-      totalDistance += d;
+  double _routeConfidence({
+    required double deviationKm,
+    required double accuracyMeters,
+  }) {
+    final deviationScore = deviationKm <= 5
+        ? 1.0
+        : deviationKm >= 40
+            ? 0.0
+            : 1.0 - ((deviationKm - 5) / 35);
+    final accuracyScore = (1.0 - (accuracyMeters / 250)).clamp(0.0, 1.0);
+    return (deviationScore * 0.7 + accuracyScore * 0.3).clamp(0.0, 1.0);
+  }
+
+  String _gpsMessage(GpsQuality quality, double deviationKm) {
+    if (deviationKm >= 40) {
+      return 'GPS live — ' + deviationKm.toStringAsFixed(0) + ' km from planned corridor.';
     }
-    if (totalDistance == 0) return 0.0;
-
-    double bestCovered = 0;
-    double bestDist = double.infinity;
-    double distanceSoFar = 0;
-
-    for (int i = 0; i < waypoints.length - 1; i++) {
-      final segLen = segLengths[i];
-      final dStart = GeoPoint.distanceKm(waypoints[i], position);
-      final dEnd = GeoPoint.distanceKm(waypoints[i + 1], position);
-
-      double localT = 0.0;
-      if (segLen > 0 && dStart > 0) {
-        final cosA = (segLen * segLen + dStart * dStart - dEnd * dEnd) /
-            (2 * segLen * dStart);
-        localT = (dStart * cosA / segLen).clamp(0.0, 1.0);
-      }
-
-      final projectedD = math.sqrt(
-        math.max(0, dStart * dStart - math.pow(localT * segLen, 2)),
-      );
-
-      if (projectedD < bestDist) {
-        bestDist = projectedD;
-        bestCovered = distanceSoFar + localT * segLen;
-      }
-      distanceSoFar += segLen;
+    switch (quality) {
+      case GpsQuality.good:
+        return 'GPS live — good accuracy.';
+      case GpsQuality.fair:
+        return 'GPS live — fair accuracy.';
+      case GpsQuality.poor:
+        return 'GPS live — weak accuracy.';
+      case GpsQuality.rejected:
+        return 'GPS fix rejected.';
+      case GpsQuality.unknown:
+        return 'GPS tracking live';
     }
-
-    return (bestCovered / totalDistance).clamp(0.0, 1.0);
   }
 
   void _update({
@@ -270,6 +333,12 @@ class FlightController extends Notifier<FlightState> {
     required double heading,
     required Duration elapsed,
     String? message,
+    GpsQuality? gpsQuality,
+    double? gpsAccuracyMeters,
+    double? routeDeviationKm,
+    double? routeConfidence,
+    DateTime? lastGpsTimestamp,
+    bool? mockLocationRejected,
   }) {
     _trackBuffer.add(position);
     if (_trackBuffer.length > _maxTrackPoints) {
@@ -287,6 +356,12 @@ class FlightController extends Notifier<FlightState> {
       nearby: nearby,
       elapsed: elapsed,
       message: message,
+      gpsQuality: gpsQuality,
+      gpsAccuracyMeters: gpsAccuracyMeters,
+      routeDeviationKm: routeDeviationKm,
+      routeConfidence: routeConfidence,
+      lastGpsTimestamp: lastGpsTimestamp,
+      mockLocationRejected: mockLocationRejected,
     );
   }
 
