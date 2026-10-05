@@ -114,7 +114,7 @@ class NearbyPoiService {
     for (var dLat = -cellRadius; dLat <= cellRadius; dLat++) {
       for (var dLon = -cellRadius; dLon <= cellRadius; dLon++) {
         values.addAll(
-          _grid['\${latCell + dLat}:\${lonCell + dLon}'] ?? const [],
+          _grid['${latCell + dLat}:${lonCell + dLon}'] ?? const [],
         );
       }
     }
@@ -123,7 +123,7 @@ class NearbyPoiService {
   }
 
   String _keyFor(GeoPoint point) =>
-      '\${(point.latitude / _cellSizeDegrees).floor()}:\${(point.longitude / _cellSizeDegrees).floor()}';
+      '${(point.latitude / _cellSizeDegrees).floor()}:${(point.longitude / _cellSizeDegrees).floor()}';
 
   double _angleDifference(double a, double b) {
     var diff = (a - b).abs() % 360;
