@@ -26,7 +26,10 @@ class AppConfig {
     defaultValue: 'false',
   ) == 'true';
 
+  static const maxOfflineTiles = 12000;
+
   static const tileRequestHeaders = <String, String>{
+    'User-Agent': userAgent,
     'Accept': 'image/avif,image/webp,image/png,image/*,*/*;q=0.8',
   };
 }
