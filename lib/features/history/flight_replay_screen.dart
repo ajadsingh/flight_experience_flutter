@@ -351,7 +351,7 @@ class _ProfilePainter extends CustomPainter {
 
     canvas.drawPath(buildPath(values.length), line);
 
-    final count = (currentIndex + 1).clamp(1, values.length);
+    final count = (currentIndex + 1).clamp(1, values.length).toInt();
     canvas.drawPath(buildPath(count), progressLine);
 
     final markerX =
