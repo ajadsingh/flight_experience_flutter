@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/flight_state.dart';
+import '../../core/models/gps_status.dart';
 import '../../core/models/poi.dart';
 import '../../shared/widgets/stat_chip.dart';
 import 'flight_controller.dart';
