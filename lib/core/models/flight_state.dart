@@ -27,6 +27,7 @@ class FlightState {
     required this.message,
     required this.gpsAvailable,
     required this.satelliteAvailable,
+    this.offlineOnly = false,
     this.gpsQuality = GpsQuality.unknown,
     this.gpsAccuracyMeters = 0.0,
     this.routeDeviationKm = 0.0,
@@ -60,6 +61,7 @@ class FlightState {
         message: 'Ready to start',
         gpsAvailable: false,
         satelliteAvailable: false,
+        offlineOnly: false,
         gpsQuality: GpsQuality.unknown,
         gpsAccuracyMeters: 0,
         routeDeviationKm: 0,
@@ -92,6 +94,7 @@ class FlightState {
   final String message;
   final bool gpsAvailable;
   final bool satelliteAvailable;
+  final bool offlineOnly;
 
   final GpsQuality gpsQuality;
   final double gpsAccuracyMeters;
@@ -127,6 +130,7 @@ class FlightState {
     String? message,
     bool? gpsAvailable,
     bool? satelliteAvailable,
+    bool? offlineOnly,
     GpsQuality? gpsQuality,
     double? gpsAccuracyMeters,
     double? routeDeviationKm,
@@ -162,6 +166,7 @@ class FlightState {
       message: message ?? this.message,
       gpsAvailable: gpsAvailable ?? this.gpsAvailable,
       satelliteAvailable: satelliteAvailable ?? this.satelliteAvailable,
+      offlineOnly: offlineOnly ?? this.offlineOnly,
       gpsQuality: gpsQuality ?? this.gpsQuality,
       gpsAccuracyMeters: gpsAccuracyMeters ?? this.gpsAccuracyMeters,
       routeDeviationKm: routeDeviationKm ?? this.routeDeviationKm,
