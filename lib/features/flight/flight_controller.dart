@@ -56,6 +56,8 @@ class FlightController extends Notifier<FlightState> {
     _poisLoaded = _loadPois();
     ref.onDispose(_stopAll);
 
+    scheduleMicrotask(() => _restoreCacheStatus(route));
+
     return FlightState.initial(route).copyWith(
       satelliteAvailable: AppConfig.satelliteTileUrl.isNotEmpty,
     );
