@@ -105,6 +105,10 @@ class _FlightScreenState extends ConsumerState<FlightScreen> {
                     StatChip(label: 'Altitude', value: '${state.altitudeFt.round()} ft'),
                     StatChip(label: 'Speed', value: '${state.speedKmh.round()} km/h'),
                     StatChip(label: 'Heading', value: '${state.heading.round()}°'),
+                    StatChip(
+                      label: 'Elapsed',
+                      value: '${state.elapsed.inMinutes}m ${state.elapsed.inSeconds.remainder(60)}s',
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -258,8 +262,8 @@ class _FlightScreenState extends ConsumerState<FlightScreen> {
                           );
                         }
                       },
-                icon: Icon(state.started ? Icons.pause : Icons.play_arrow),
-                label: Text(state.started ? 'Pause Tracking' : 'Start Tracking'),
+                icon: Icon(state.started ? Icons.stop : Icons.play_arrow),
+                label: Text(state.started ? 'End & Save Flight' : 'Start Flight'),
               ),
             ),
           ),
