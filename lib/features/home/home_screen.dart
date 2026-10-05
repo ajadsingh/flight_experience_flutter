@@ -6,6 +6,7 @@ import '../../core/services/offline_pack_service.dart';
 import '../flight/flight_controller.dart';
 import '../flight/flight_routes.dart';
 import '../flight/flight_screen.dart';
+import 'flight_history_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -21,6 +22,13 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Flight Experience'),
         actions: [
+          IconButton(
+            tooltip: 'Flight history',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const FlightHistoryScreen()),
+            ),
+            icon: const Icon(Icons.history),
+          ),
           IconButton(
             tooltip: 'Offline storage',
             onPressed: () => showDialog<void>(
