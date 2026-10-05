@@ -9,6 +9,7 @@ import '../../core/models/flight_record.dart';
 import '../../core/models/flight_route.dart';
 import '../../core/models/flight_state.dart';
 import '../../core/models/geo_point.dart';
+import '../../core/models/gps_status.dart';
 import '../../core/services/demo_flight_service.dart';
 import '../../core/services/flight_history_repository.dart';
 import '../../core/services/gps_quality_service.dart';
@@ -158,8 +159,7 @@ class FlightController extends Notifier<FlightState> {
 
   Future<void> deleteCurrentOfflineMap() async {
     await TileCacheService.instance.deleteRoute(state.route.id);
-    if (state.route.id == state.route.id) {
-      state = state.copyWith(
+    state = state.copyWith(
         mapDownloadProgress: 0,
         isMapDownloading: false,
         isMapOfflineReady: false,
