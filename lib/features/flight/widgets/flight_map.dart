@@ -33,11 +33,15 @@ class _FlightMapState extends State<FlightMap> {
   void initState() {
     super.initState();
     _streetTileProvider = OfflineCachedTileProvider(
+      routeId: widget.state.route.id,
       layerName: 'street',
+      offlineOnly: widget.state.offlineOnly,
       headers: {'User-Agent': AppConfig.userAgent},
     );
     _satelliteTileProvider = OfflineCachedTileProvider(
+      routeId: widget.state.route.id,
       layerName: 'satellite',
+      offlineOnly: widget.state.offlineOnly,
       headers: {'User-Agent': AppConfig.userAgent},
     );
   }
@@ -52,11 +56,29 @@ class _FlightMapState extends State<FlightMap> {
   @override
   void didUpdateWidget(covariant FlightMap oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.state.route.id != widget.state.route.id ||
+        oldWidget.state.offlineOnly != widget.state.offlineOnly) {
+      _streetTileProvider.dispose();
+      _satelliteTileProvider.dispose();
+      _streetTileProvider = OfflineCachedTileProvider(
+        routeId: widget.state.route.id,
+        layerName: 'street',
+        offlineOnly: widget.state.offlineOnly,
+        headers: {'User-Agent': AppConfig.userAgent},
+      );
+      _satelliteTileProvider = OfflineCachedTileProvider(
+        routeId: widget.state.route.id,
+        layerName: 'satellite',
+        offlineOnly: widget.state.offlineOnly,
+        headers: {'User-Agent': AppConfig.userAgent},
+      );
+    }
+
     final current = widget.state.currentPosition?.toLatLng();
     if (current == null || !widget.followAircraft) return;
 
     final moved = _lastCenter == null ||
-        _haversineKm(_lastCenter!, current) > 5.0; // threshold in km
+        _haversineKm(_lastCenter!, current) > 5.0;
     if (moved) {
       _lastCenter = current;
       WidgetsBinding.instance.addPostFrameCallback((_) {
