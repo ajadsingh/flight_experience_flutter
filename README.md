@@ -76,7 +76,7 @@ The Home screen includes route-specific pack status, storage size, retry feedbac
 
 ## Android release artifacts
 
-GitHub Actions now runs analyze/tests and builds a release APK and AAB artifact when a `v*` tag is pushed or the workflow is manually dispatched. The current learning Android project still uses the debug signing config in `android/app/build.gradle.kts`; production distribution requires a real keystore and GitHub secrets before publishing.
+GitHub Actions now runs analyze/tests and builds a release APK and AAB artifact when a `v*` tag is pushed or the workflow is manually dispatched. The Android Gradle config now supports a real `android/key.properties` keystore configuration and falls back to debug signing when that file is absent. Keep `key.properties` out of Git; use `android/key.properties.example` as the template. Production publishing still requires securely managed keystore secrets.
 
 ## Suggested production next steps
 
