@@ -16,14 +16,14 @@
 ## Privacy
 - Ask only for foreground location.
 - Explain why location is used.
-- Keep flight history local by default.
+- Flight history is local-only by default.
 - Provide a delete-history action.
 
 ## Experience
-- Add airport pair selection.
-- Add route corridor generation.
-- Add “What's below me?” and “What's ahead?” with bearing-aware selection.
-- Add optional 3D terrain as a separate renderer.
+- Airport pair selection is implemented.
+- Route corridor generation and route-scoped offline packs are implemented.
+- “What's below me?” and “What's ahead?” bearing-aware passenger intelligence is implemented.
+- 3D-style replay perspective is implemented; true terrain elevation rendering remains a future renderer.
 - Add accessibility labels and haptics.
 
 ## Release
