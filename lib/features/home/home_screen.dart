@@ -299,7 +299,15 @@ class _OfflineMapStatusCard extends StatelessWidget {
                 ),
               ),
             ] else ...[
-              if (state.cacheFailedTiles > 0)
+              if (state.cacheError != null)
+                Text(
+                  state.cacheError!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.red.shade700,
+                    fontWeight: FontWeight.w600,
+                  ),
+                )
+              else if (state.cacheFailedTiles > 0)
                 Text(
                   '${state.cacheFailedTiles} tile(s) failed. Tap Download to retry the missing tiles.',
                   style: theme.textTheme.bodySmall?.copyWith(
