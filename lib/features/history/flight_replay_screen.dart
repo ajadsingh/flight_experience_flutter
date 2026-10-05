@@ -1,13 +1,14 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../core/models/flight_record.dart';
+import '../../core/models/flight_sample.dart';
 import '../../core/models/flight_state.dart';
 import '../../core/models/gps_status.dart';
-import '../../core/models/flight_record.dart';
-import '../../core/models/geo_point.dart';
-import '../flight/widgets/flight_map.dart';
 import '../../shared/utils/formatters.dart';
+import '../flight/widgets/flight_map.dart';
 
 class FlightReplayScreen extends StatefulWidget {
   const FlightReplayScreen({super.key, required this.record});
@@ -23,7 +24,30 @@ class _FlightReplayScreenState extends State<FlightReplayScreen> {
   int _index = 0;
   bool _playing = false;
 
-  int get _lastIndex => widget.record.track.length - 1;
+  late final List<FlightSample> _samples;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.record.samples.isNotEmpty) {
+      _samples = widget.record.samples;
+    } else {
+      _samples = widget.record.track
+          .map(
+            (point) => FlightSample(
+              position: point,
+              timestamp: widget.record.startedAt,
+              speedKmh: widget.record.maxSpeedKmh,
+              altitudeFt: widget.record.maxAltitudeFt,
+              heading: 0,
+              accuracyM: 0,
+            ),
+          )
+          .toList(growable: false);
+    }
+  }
+
+  int get _lastIndex => _samples.length - 1;
 
   @override
   void dispose() {
@@ -32,7 +56,7 @@ class _FlightReplayScreenState extends State<FlightReplayScreen> {
   }
 
   void _togglePlayback() {
-    if (widget.record.track.length < 2) return;
+    if (_samples.length < 2) return;
 
     if (_playing) {
       _timer?.cancel();
@@ -61,41 +85,48 @@ class _FlightReplayScreenState extends State<FlightReplayScreen> {
 
   FlightState _state() {
     final route = widget.record.toRoute();
-    final track = widget.record.track;
-    final position = track.isEmpty
-        ? route.start
-        : track[_index.clamp(0, track.length - 1)];
+    final track = _samples.map((sample) => sample.position).toList();
+    final sample = _samples.isEmpty
+        ? null
+        : _samples[_index.clamp(0, _lastIndex)];
 
-    var heading = 0.0;
-    if (_index + 1 < track.length) {
-      heading = GeoPoint.bearingDegrees(track[_index], track[_index + 1]);
-    } else if (_index > 0) {
-      heading = GeoPoint.bearingDegrees(track[_index - 1], track[_index]);
+    var heading = sample?.heading ?? 0;
+    if (sample != null && heading <= 0 && _index + 1 < _samples.length) {
+      heading = GeoPoint.bearingDegrees(
+        sample.position,
+        _samples[_index + 1].position,
+      );
     }
 
     final progress =
-        track.length <= 1 ? 0.0 : _index / (track.length - 1);
+        _samples.length <= 1 ? 0.0 : _index / (_samples.length - 1);
+
+    var elapsed = Duration.zero;
+    if (_samples.length > 1 && sample != null) {
+      elapsed = sample.timestamp.difference(_samples.first.timestamp);
+      if (elapsed.isNegative) elapsed = Duration.zero;
+    }
 
     return FlightState(
       mode: FlightMode.demo,
       route: route,
       started: _playing,
-      currentPosition: position,
+      currentPosition: sample?.position ?? route.start,
       track: List.unmodifiable(track.take(_index + 1)),
       progress: progress,
-      speedKmh: widget.record.maxSpeedKmh,
-      altitudeFt: widget.record.maxAltitudeFt,
+      speedKmh: sample?.speedKmh ?? widget.record.maxSpeedKmh,
+      altitudeFt: sample?.altitudeFt ?? widget.record.maxAltitudeFt,
       heading: heading,
       nearby: const [],
       below: null,
       ahead: null,
-      elapsed: widget.record.duration,
+      elapsed: elapsed,
       mapLayer: MapLayer.street,
       message: 'Flight replay',
       gpsAvailable: false,
       gpsQuality: GpsQuality.noFix,
-      gpsAccuracyM: 0,
-      lastFixAt: null,
+      gpsAccuracyM: sample?.accuracyM ?? 0,
+      lastFixAt: sample?.timestamp,
       isMockLocation: false,
       routeDeviationKm: 0,
       routeConfidence: 1,
@@ -127,12 +158,34 @@ class _FlightReplayScreenState extends State<FlightReplayScreen> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _Stat(label: 'Distance', value: widget.record.distanceKm.toStringAsFixed(0) + ' km'),
-                _Stat(label: 'Max speed', value: widget.record.maxSpeedKmh.toStringAsFixed(0) + ' km/h'),
-                _Stat(label: 'Max altitude', value: widget.record.maxAltitudeFt.toStringAsFixed(0) + ' ft'),
+                _Stat(
+                  label: 'Distance',
+                  value:
+                      widget.record.distanceKm.toStringAsFixed(0) + ' km',
+                ),
+                _Stat(
+                  label: 'Max speed',
+                  value:
+                      widget.record.maxSpeedKmh.toStringAsFixed(0) +
+                          ' km/h',
+                ),
+                _Stat(
+                  label: 'Max altitude',
+                  value:
+                      widget.record.maxAltitudeFt.toStringAsFixed(0) +
+                          ' ft',
+                ),
               ],
             ),
           ),
+          if (_samples.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: _FlightProfile(
+                samples: _samples,
+                currentIndex: _index,
+              ),
+            ),
           Expanded(
             child: Stack(
               children: [
@@ -148,14 +201,20 @@ class _FlightReplayScreenState extends State<FlightReplayScreen> {
                         children: [
                           Slider(
                             min: 0,
-                            max: _lastIndex > 0 ? _lastIndex.toDouble() : 1,
-                            value: _lastIndex > 0 ? _index.toDouble() : 0,
+                            max: _lastIndex > 0
+                                ? _lastIndex.toDouble()
+                                : 1,
+                            value: _lastIndex > 0
+                                ? _index.toDouble()
+                                : 0,
                             onChanged: _lastIndex > 0 ? _seek : null,
                           ),
                           Row(
                             children: [
                               IconButton.filledTonal(
-                                tooltip: _playing ? 'Pause replay' : 'Play replay',
+                                tooltip: _playing
+                                    ? 'Pause replay'
+                                    : 'Play replay',
                                 onPressed: _togglePlayback,
                                 icon: Icon(
                                   _playing
@@ -166,11 +225,19 @@ class _FlightReplayScreenState extends State<FlightReplayScreen> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  durationLabel(widget.record.duration) +
+                                  durationLabel(state.elapsed) +
                                       '  •  Point ' +
-                                      (_index + 1).toString() +
+                                      (_samples.isEmpty
+                                          ? '0'
+                                          : (_index + 1).toString()) +
                                       ' / ' +
-                                      widget.record.track.length.toString(),
+                                      _samples.length.toString(),
+                                ),
+                              ),
+                              Text(
+                                state.altitudeFt.round().toString() + ' ft',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                             ],
@@ -186,6 +253,116 @@ class _FlightReplayScreenState extends State<FlightReplayScreen> {
         ],
       ),
     );
+  }
+}
+
+class _FlightProfile extends StatelessWidget {
+  const _FlightProfile({
+    required this.samples,
+    required this.currentIndex,
+  });
+
+  final List<FlightSample> samples;
+  final int currentIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: SizedBox(
+        height: 82,
+        width: double.infinity,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Flight altitude profile',
+                style: Theme.of(context)
+                    .textTheme
+                    .labelMedium
+                    ?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              Expanded(
+                child: CustomPaint(
+                  painter: _ProfilePainter(
+                    samples: samples,
+                    currentIndex: currentIndex,
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfilePainter extends CustomPainter {
+  const _ProfilePainter({
+    required this.samples,
+    required this.currentIndex,
+  });
+
+  final List<FlightSample> samples;
+  final int currentIndex;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (samples.length < 2 || size.width <= 0 || size.height <= 0) {
+      return;
+    }
+
+    final values =
+        samples.map((sample) => sample.altitudeFt).toList();
+    final minValue = values.reduce(math.min);
+    final maxValue = values.reduce(math.max);
+    final range = math.max(1, maxValue - minValue);
+
+    final line = Paint()
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    final progressLine = Paint()
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
+
+    Path buildPath(int count) {
+      final path = Path();
+      for (var i = 0; i < count; i++) {
+        final x = i / (values.length - 1) * size.width;
+        final normalized = (values[i] - minValue) / range;
+        final y = size.height - normalized * size.height;
+        if (i == 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+      return path;
+    }
+
+    canvas.drawPath(buildPath(values.length), line);
+
+    final count = (currentIndex + 1).clamp(1, values.length);
+    canvas.drawPath(buildPath(count), progressLine);
+
+    final markerX =
+        currentIndex / (values.length - 1) * size.width;
+    final markerY =
+        size.height -
+        ((values[currentIndex] - minValue) / range * size.height);
+
+    canvas.drawCircle(markerX, markerY, 4, Paint());
+  }
+
+  @override
+  bool shouldRepaint(covariant _ProfilePainter oldDelegate) {
+    return oldDelegate.currentIndex != currentIndex ||
+        oldDelegate.samples != samples;
   }
 }
 
