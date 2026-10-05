@@ -107,13 +107,14 @@ class _FlightMapState extends State<FlightMap> {
             initialCenter: current,
             initialZoom: 6.2,
             minZoom: 3,
-            maxZoom: 17,
+            maxZoom: 13,
           ),
           children: [
             TileLayer(
               urlTemplate: tileUrl,
               userAgentPackageName: AppConfig.userAgent,
               tileProvider: tileProvider,
+              maxNativeZoom: AppConfig.offlineMaxZoom,
             ),
             PolylineLayer(
               polylines: [
