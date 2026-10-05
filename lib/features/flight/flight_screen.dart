@@ -363,7 +363,7 @@ class _InfoPill extends StatelessWidget {
       ),
     );
   }
-}
+
   double _zoomForAltitude(double altitudeFt) {
     const minZoom = 5.5;
     const maxZoom = 10.0;
