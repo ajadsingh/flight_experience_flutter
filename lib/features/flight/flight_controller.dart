@@ -60,33 +60,34 @@ class FlightController extends Notifier<FlightState> {
 
   Future<void> _autoCacheRoute(FlightRoute route) async {
     _cacheSubscription?.cancel();
-    _cacheSubscription = TileCacheService.instance.watchProgress(route.id).listen((status) {
+    _cacheSubscription =
+        TileCacheService.instance.watchProgress(route.id).listen((status) {
       state = state.copyWith(
         mapDownloadProgress: status.progress,
         isMapDownloading: status.isDownloading,
-        isMapOfflineReady: status.isDone || status.progress >= 0.95,
+        isMapOfflineReady: status.isDone,
         downloadedTiles: status.downloaded,
         totalTiles: status.total,
       );
     });
 
     final currentStatus = TileCacheService.instance.getStatus(route.id);
-    if (currentStatus != null && currentStatus.isDone) {
+    if (currentStatus != null) {
       state = state.copyWith(
-        mapDownloadProgress: 1.0,
-        isMapDownloading: false,
-        isMapOfflineReady: true,
+        mapDownloadProgress: currentStatus.progress,
+        isMapDownloading: currentStatus.isDownloading,
+        isMapOfflineReady: currentStatus.isDone,
         downloadedTiles: currentStatus.downloaded,
         totalTiles: currentStatus.total,
       );
-      return;
+      if (currentStatus.isDone) return;
+    } else {
+      state = state.copyWith(
+        isMapDownloading: true,
+        isMapOfflineReady: false,
+        mapDownloadProgress: 0.0,
+      );
     }
-
-    state = state.copyWith(
-      isMapDownloading: true,
-      isMapOfflineReady: false,
-      mapDownloadProgress: 0.0,
-    );
 
     try {
       await TileCacheService.instance.cacheRoute(route);
@@ -96,13 +97,16 @@ class FlightController extends Notifier<FlightState> {
   }
 
   void selectMode(FlightMode mode) {
-    _stopAll();
+    _stopTracking();
     _trackBuffer.clear();
     state = FlightState.initial(state.route).copyWith(
       mode: mode,
       satelliteAvailable: AppConfig.satelliteTileUrl.isNotEmpty,
       isMapOfflineReady: state.isMapOfflineReady,
+      isMapDownloading: state.isMapDownloading,
       mapDownloadProgress: state.mapDownloadProgress,
+      downloadedTiles: state.downloadedTiles,
+      totalTiles: state.totalTiles,
       message: mode == FlightMode.demo
           ? 'Demo flight ready'
           : 'GPS mode ready — tap Start',
@@ -110,11 +114,16 @@ class FlightController extends Notifier<FlightState> {
   }
 
   void selectRoute(FlightRoute route) {
-    _stopAll();
+    _stopTracking();
     _trackBuffer.clear();
     state = FlightState.initial(route).copyWith(
       mode: state.mode,
       satelliteAvailable: AppConfig.satelliteTileUrl.isNotEmpty,
+      isMapOfflineReady: false,
+      isMapDownloading: false,
+      mapDownloadProgress: 0,
+      downloadedTiles: 0,
+      totalTiles: 0,
       message: state.mode == FlightMode.demo
           ? 'Demo flight ready'
           : 'GPS mode ready — tap Start',
@@ -289,18 +298,22 @@ class FlightController extends Notifier<FlightState> {
   }
 
   void stop() {
-    _stopAll();
+    _stopTracking();
     state = state.copyWith(started: false, message: 'Tracking paused');
   }
 
-  void _stopAll() {
+  void _stopTracking() {
     _demo.stop();
     _gpsSubscription?.cancel();
     _gpsSubscription = null;
-    _cacheSubscription?.cancel();
-    _cacheSubscription = null;
     _elapsedTimer?.cancel();
     _elapsedTimer = null;
     _stopwatch.stop();
+  }
+
+  void _stopAll() {
+    _stopTracking();
+    _cacheSubscription?.cancel();
+    _cacheSubscription = null;
   }
 }
