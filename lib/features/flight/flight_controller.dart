@@ -478,6 +478,7 @@ class FlightController extends Notifier<FlightState> {
     final startedAt = _flightStartedAt;
     final route = state.route;
     final duration = state.elapsed;
+    final mode = state.mode;
     _flightStartedAt = null;
     if (startedAt == null || _trackBuffer.length < 2) return;
 
@@ -491,7 +492,7 @@ class FlightController extends Notifier<FlightState> {
       maxSpeedKmh: _maxSpeedKmh,
       maxAltitudeFt: _maxAltitudeFt,
       track: track,
-      mode: state.mode == FlightMode.demo ? 'demo' : 'gps',
+      mode: mode == FlightMode.demo ? 'demo' : 'gps',
     );
 
     try {
