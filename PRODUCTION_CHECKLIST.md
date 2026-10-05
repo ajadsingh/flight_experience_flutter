@@ -3,15 +3,15 @@
 ## Maps and offline
 - Choose a commercial/appropriate map tile provider.
 - Keep OSM attribution where required.
-- Create real offline packs using a licensed MBTiles/PMTiles dataset.
-- Add richer POIs for the countries/routes you support.
-- Define a maximum offline pack size and device storage check.
+- Learning build: use route-scoped directory offline packs; production: replace with a licensed MBTiles/PMTiles dataset or equivalent offline provider.
+- Learning build: generate route-specific POI packs from bundled data; expand source data for supported regions.
+- Done for learning build: max tile guard, route storage accounting, pack delete action, failed-tile retry.
 
 ## GPS
 - Add a smoothing/filtering layer for noisy cabin GPS.
 - Display a data-quality indicator based on position accuracy.
 - Handle `Position.timestamp`, mock locations and stale fixes.
-- Do not market phone GPS as aircraft navigation.
+- Keep passenger positioning clearly informational; do not market phone GPS as aircraft navigation.
 
 ## Privacy
 - Ask only for foreground location.
