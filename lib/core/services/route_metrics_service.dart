@@ -77,7 +77,7 @@ class RouteMetricsService {
       distanceBefore += segmentLength;
     }
 
-    final progress = (bestCovered / totalDistance).clamp(0.0, 1.0);
+    final progress = (bestCovered / totalDistance) .clamp(0.0, 1.0).toDouble();
     final confidence = math.exp(-bestDeviation / 60.0).clamp(0.0, 1.0);
 
     return RouteMetrics(
