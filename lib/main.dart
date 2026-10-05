@@ -5,7 +5,11 @@ import 'features/home/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await TileCacheService.instance.initialize();
+  try {
+    await TileCacheService.instance.initialize();
+  } catch (_) {
+    // The UI and GPS experience should still start if local storage is unavailable.
+  }
   runApp(const ProviderScope(child: FlightExperienceApp()));
 }
 
