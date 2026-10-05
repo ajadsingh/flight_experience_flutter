@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/models/flight_state.dart';
+import '../../core/models/gps_status.dart';
 import '../../core/models/flight_record.dart';
 import '../../core/models/geo_point.dart';
 import '../flight/widgets/flight_map.dart';
@@ -54,6 +55,7 @@ class _FlightReplayScreenState extends State<FlightReplayScreen> {
   }
 
   void _seek(double value) {
+    if (_lastIndex < 0) return;
     setState(() => _index = value.round().clamp(0, _lastIndex));
   }
 
