@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../core/models/flight_record.dart';
+import '../../core/models/geo_point.dart';
 import '../../core/models/flight_sample.dart';
 import '../../core/models/flight_state.dart';
 import '../../core/models/gps_status.dart';
@@ -88,7 +89,7 @@ class _FlightReplayScreenState extends State<FlightReplayScreen> {
     final track = _samples.map((sample) => sample.position).toList();
     final sample = _samples.isEmpty
         ? null
-        : _samples[_index.clamp(0, _lastIndex)];
+        : _samples[_index.clamp(0, _lastIndex).toInt()];
 
     var heading = sample?.heading ?? 0;
     if (sample != null && heading <= 0 && _index + 1 < _samples.length) {
@@ -360,7 +361,7 @@ class _ProfilePainter extends CustomPainter {
         size.height -
         ((values[currentIndex] - minValue) / range * size.height);
 
-    canvas.drawCircle(markerX, markerY, 4, Paint());
+    canvas.drawCircle(Offset(markerX, markerY), 4, Paint());
   }
 
   @override
