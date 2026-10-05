@@ -299,10 +299,19 @@ class _OfflineMapStatusCard extends StatelessWidget {
                 ),
               ),
             ] else ...[
-              Text(
-                'Tap Download while online to prepare the selected route for offline use.',
-                style: theme.textTheme.bodySmall,
-              ),
+              if (state.cacheFailedTiles > 0)
+                Text(
+                  '${state.cacheFailedTiles} tile(s) failed. Tap Download to retry the missing tiles.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.red.shade700,
+                    fontWeight: FontWeight.w600,
+                  ),
+                )
+              else
+                Text(
+                  'Tap Download while online to prepare the selected route for offline use.',
+                  style: theme.textTheme.bodySmall,
+                ),
             ],
           ],
         ),
