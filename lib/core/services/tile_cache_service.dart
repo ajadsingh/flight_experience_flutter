@@ -169,7 +169,16 @@ class TileCacheService {
 
   Future<void> deleteRoute(String routeId) async {
     await initialize();
+
+    final active = _active[routeId];
     await cancelRoute(routeId);
+    if (active != null) {
+      try {
+        await active;
+      } catch (_) {
+        // Best effort: the cache directory can still be removed below.
+      }
+    }
 
     final directory = Directory(
       '\${_rootDirectory!.path}\${Platform.pathSeparator}$routeId',
