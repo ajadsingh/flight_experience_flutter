@@ -314,10 +314,10 @@ class TileCacheService {
       throw StateError('TileCacheService.initialize() must be called first.');
     }
     return File(
-      '${root.path}${Platform.pathSeparator}${layer}'
-      '${Platform.pathSeparator}${z}'
-      '${Platform.pathSeparator}${x}'
-      '${Platform.pathSeparator}${y}.png',
+      '${root.path}${Platform.pathSeparator}$layer'
+      '${Platform.pathSeparator}$z'
+      '${Platform.pathSeparator}$x'
+      '${Platform.pathSeparator}$y.png',
     );
   }
 
