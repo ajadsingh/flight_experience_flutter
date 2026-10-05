@@ -43,7 +43,7 @@ class OfflineCachedTileProvider extends TileProvider {
         coordinates.y,
       ),
       headers: {
-        ...(headers ?? const <String, String>{}),
+        ...headers,
         ...AppConfig.tileRequestHeaders,
       },
     );
